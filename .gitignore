@@ -1,0 +1,36 @@
+# Compiled class files
+target/
+*.class
+
+# Log files
+*.log
+
+# NetBeans specific
+nbproject/
+nb-configuration.xml
+nbactions.xml
+nbbuild/
+nbdist/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VS Code
+.vscode/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp

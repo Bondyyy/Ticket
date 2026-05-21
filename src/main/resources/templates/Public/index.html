@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Dề Dê Tickets - Nền tảng bán vé sự kiện</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/landing.css}">
+    </th:block>
+</head>
+<body>
+<main layout:fragment="content" class="landing-page">
+    <section class="landing-hero">
+        <div class="hero-copy">
+            <div class="eyebrow">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Event ticketing platform
+            </div>
+            <h1>Bán vé sự kiện thông minh, soát vé bằng QR, báo cáo doanh thu theo thời gian thực</h1>
+            <p class="hero-subtitle">
+                Dề Dê Tickets giúp ban tổ chức tạo sự kiện, mở bán vé, giữ ghế, thanh toán giả lập,
+                phát hành QR và kiểm soát vé tại cổng.
+            </p>
+            <div class="hero-actions">
+                <a class="btn-hero-primary" th:href="@{/su-kien}">
+                    <i class="bi bi-calendar-event"></i>
+                    Xem sự kiện
+                </a>
+                <a th:if="${session.nguoiDung == null}" class="btn-hero-secondary" th:href="@{/dang-nhap}">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Đăng nhập
+                </a>
+                <a th:if="${session.nguoiDung != null and session.roles != null and (#lists.contains(session.roles, 'ADMIN') or #lists.contains(session.roles, 'ORGANIZER'))}"
+                   class="btn-hero-secondary" th:href="@{/sukien}">
+                    <i class="bi bi-speedometer2"></i>
+                    Vào trang quản lý
+                </a>
+            </div>
+            <div class="hero-note">
+                <span><i class="bi bi-shield-check"></i> QR duy nhất</span>
+                <span><i class="bi bi-clock-history"></i> Giữ ghế 10 phút</span>
+                <span><i class="bi bi-graph-up-arrow"></i> Báo cáo realtime</span>
+            </div>
+        </div>
+
+        <div class="hero-visual dashboard-showcase ui-hover-card" aria-label="Minh họa dashboard Dề Dê Tickets">
+            <div class="dashboard-preview showcase-shell">
+                <div class="preview-header">
+                    <div>
+                        <span class="preview-kicker">Live dashboard</span>
+                        <strong>SK-2026 Concert Night</strong>
+                    </div>
+                    <span class="live-pill"><i class="bi bi-circle-fill"></i> Live</span>
+                </div>
+                <div class="metric-grid">
+                    <div class="metric-card kpi-card kpi-1">
+                        <span>Doanh thu</span>
+                        <strong>1.28B</strong>
+                        <small>+18.4%</small>
+                    </div>
+                    <div class="metric-card kpi-card kpi-2">
+                        <span>Vé bán</span>
+                        <strong>42.6K</strong>
+                        <small>85%</small>
+                    </div>
+                    <div class="metric-card kpi-card kpi-3">
+                        <span>Lấp đầy</span>
+                        <strong>91%</strong>
+                        <small>12 khu vực</small>
+                    </div>
+                </div>
+                <div class="chart-bars chart-card" aria-hidden="true">
+                    <span class="chart-bar bar-1" style="height: 46%"></span>
+                    <span class="chart-bar bar-2" style="height: 72%"></span>
+                    <span class="chart-bar bar-3" style="height: 58%"></span>
+                    <span class="chart-bar bar-4" style="height: 88%"></span>
+                    <span class="chart-bar bar-5" style="height: 66%"></span>
+                    <span class="chart-bar bar-6" style="height: 94%"></span>
+                </div>
+            </div>
+
+            <div class="ticket-preview qr-ticket-card">
+                <div class="qr-mock">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+                <div>
+                    <small>QR Ticket</small>
+                    <strong>VIP A12</strong>
+                    <span>Check-in dưới 5 giây</span>
+                </div>
+            </div>
+
+            <div class="seat-preview seat-cluster">
+                <div class="seat-dot seat-cell available"></div>
+                <div class="seat-dot seat-cell selected"></div>
+                <div class="seat-dot seat-cell booked"></div>
+                <div class="seat-dot seat-cell available"></div>
+                <div class="seat-dot seat-cell selected"></div>
+                <div class="seat-dot seat-cell booked"></div>
+                <div class="seat-dot seat-cell available"></div>
+                <div class="seat-dot seat-cell available"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="trust-grid" aria-label="Số liệu nổi bật">
+        <div class="trust-card landing-stat-card ui-hover-card">
+            <strong>10.000</strong>
+            <span>user đồng thời mô phỏng</span>
+        </div>
+        <div class="trust-card landing-stat-card ui-hover-card">
+            <strong>50.000</strong>
+            <span>vé trên mỗi sự kiện</span>
+        </div>
+        <div class="trust-card landing-stat-card ui-hover-card">
+            <strong>QR</strong>
+            <span>duy nhất cho từng vé</span>
+        </div>
+        <div class="trust-card landing-stat-card ui-hover-card">
+            <strong>&lt; 5s</strong>
+            <span>soát vé mỗi người</span>
+        </div>
+    </section>
+
+    <section class="landing-section">
+        <div class="section-heading">
+            <span class="eyebrow">Tính năng</span>
+            <h2>Một luồng vận hành trọn vẹn từ mở bán đến check-in</h2>
+            <p>Những module cốt lõi cho cả ban tổ chức, nhân viên soát vé và khách hàng.</p>
+        </div>
+        <div class="feature-grid">
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-calendar2-week"></i>
+                <h3>Quản lý nhiều sự kiện</h3>
+                <p>Tạo, cập nhật trạng thái, theo dõi lịch mở bán và đóng bán trong cùng một dashboard.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-grid-3x3-gap"></i>
+                <h3>Sơ đồ ghế động</h3>
+                <p>Thiết lập khu vực, màu sắc, số hàng và số ghế theo từng loại vé.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-hourglass-split"></i>
+                <h3>Giữ ghế 10 phút</h3>
+                <p>Khách chọn ghế được khóa tạm, giảm trùng lặp và giữ trải nghiệm đặt vé mượt hơn.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-credit-card-2-front"></i>
+                <h3>Thanh toán giả lập + retry</h3>
+                <p>Mô phỏng luồng thành công/thất bại, giới hạn số lần thử và tự động giải phóng ghế.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-qr-code"></i>
+                <h3>QR Code</h3>
+                <p>Mỗi vé có mã QR riêng để kiểm tra trạng thái và hạn chế check-in trùng.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-phone"></i>
+                <h3>Soát vé web responsive</h3>
+                <p>Staff có thể quét QR hoặc nhập mã thủ công trên thiết bị tại cổng.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-people"></i>
+                <h3>Hàng đợi ảo</h3>
+                <p>Giảm tải khi có lượng truy cập lớn, kiểm soát lượt vào trang chọn ghế.</p>
+            </article>
+            <article class="feature-card ui-hover-card">
+                <i class="bi bi-bar-chart-line"></i>
+                <h3>Báo cáo doanh thu</h3>
+                <p>Theo dõi doanh thu, đơn hàng, tỷ lệ bán và hành vi khách hàng theo sự kiện.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="audience-section">
+        <article class="audience-card organizer-card ui-hover-card">
+            <span class="eyebrow">Organizer</span>
+            <h2>Điều phối sự kiện, vé, đơn hàng và báo cáo trong một nơi</h2>
+            <p>Ban tổ chức có thể tạo sự kiện, cấu hình sơ đồ ghế, xem doanh thu và theo dõi hiệu suất bán vé.</p>
+            <div class="audience-actions">
+                <a th:href="@{/sukien}" class="btn-hero-primary">Quản lý sự kiện</a>
+                <a th:href="@{/baocao}" class="btn-hero-secondary">Xem báo cáo</a>
+            </div>
+        </article>
+        <article class="audience-card customer-card ui-hover-card">
+            <span class="eyebrow">Customer</span>
+            <h2>Chọn ghế nhanh, thanh toán rõ ràng, nhận vé QR tức thì</h2>
+            <p>Khách hàng dễ dàng xem sự kiện, chọn khu vực/ghế, giữ chỗ và sử dụng QR để vào cổng.</p>
+            <div class="customer-flow">
+                <span>Chọn ghế</span>
+                <i class="bi bi-arrow-right"></i>
+                <span>Thanh toán</span>
+                <i class="bi bi-arrow-right"></i>
+                <span>Nhận QR</span>
+            </div>
+        </article>
+    </section>
+
+    <section id="how-it-works" class="landing-section">
+        <div class="section-heading">
+            <span class="eyebrow">Quy trình</span>
+            <h2>Từ lúc tạo sự kiện đến khi khách vào cổng</h2>
+        </div>
+        <div class="timeline-grid">
+            <div class="step-card process-card ui-hover-card"><strong class="step-number">1</strong><span>Tạo sự kiện</span></div>
+            <div class="step-card process-card ui-hover-card"><strong class="step-number">2</strong><span>Thiết lập khu vực/ghế</span></div>
+            <div class="step-card process-card ui-hover-card"><strong class="step-number">3</strong><span>Khách chọn ghế/thanh toán</span></div>
+            <div class="step-card process-card ui-hover-card"><strong class="step-number">4</strong><span>Nhận QR</span></div>
+            <div class="step-card process-card ui-hover-card"><strong class="step-number">5</strong><span>Staff soát vé</span></div>
+            <div class="step-card process-card ui-hover-card"><strong class="step-number">6</strong><span>Admin xem báo cáo</span></div>
+        </div>
+    </section>
+
+    <section class="final-cta ui-hover-card">
+        <div>
+            <span class="eyebrow">Go live</span>
+            <h2>Sẵn sàng mở bán sự kiện tiếp theo?</h2>
+            <p>Tạo trải nghiệm đặt vé rõ ràng cho khách hàng và vận hành cổng check-in tự tin hơn.</p>
+        </div>
+        <a th:href="@{/su-kien}" class="btn-hero-primary">
+            Xem sự kiện
+            <i class="bi bi-arrow-up-right"></i>
+        </a>
+    </section>
+</main>
+</body>
+</html>

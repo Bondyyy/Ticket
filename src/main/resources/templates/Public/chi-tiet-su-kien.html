@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${suKien.tenSK} + ' - Dề Dê Tickets'">Chi tiết sự kiện</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <th:block layout:fragment="page-css">
+        <style>
+            .event-detail-container { max-width: 1000px; margin: 0 auto; }
+            .event-header { display: flex; gap: 40px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--dd-border); }
+            .event-poster { width: 350px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+            .event-details { flex: 1; display: flex; flex-direction: column; }
+            .event-title { font-size: 28px; color: #1e3a8a; margin: 0 0 15px; font-family: "Be Vietnam Pro", "Inter", sans-serif; }
+            .info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 12px; color: #475569; font-size: 16px; }
+            .info-row i { width: 24px; text-align: center; color: #3b82f6; font-size: 18px; }
+            .zone-pricing { margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+            .zone-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
+            .btn-book { margin-top: auto; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; text-align: center; text-decoration: none; display: block; }
+            .btn-book:hover { background: #1d4ed8; }
+            @media (max-width: 768px) {
+                .event-header { flex-direction: column; gap: 20px; padding: 20px; }
+                .event-poster { width: 100%; height: auto; }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <main layout:fragment="content">
+        <div class="event-detail-container">
+            <div class="event-header animate__animated animate__fadeIn">
+                <img th:src="${suKien.hinhAnh != null ? suKien.hinhAnh : '/images/default-event.jpg'}" onerror="this.src='https://placehold.co/400x500/e2e8f0/64748b?text=Poster'" class="event-poster">
+                <div class="event-details">
+                    <h1 class="event-title" th:text="${suKien.tenSK}">Tên Sự Kiện</h1>
+                    
+                    <div class="info-row">
+                        <i class="fa-solid fa-clock"></i>
+                        <div th:text="${suKien.thoiGianBatDau != null ? #dates.format(suKien.thoiGianBatDau, 'HH:mm - dd/MM/yyyy') : 'Đang cập nhật'}">19:00 - 01/01/2026</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <div th:text="${suKien.maDiaDiem != null ? suKien.maDiaDiem : 'Đang cập nhật'}">Địa điểm</div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <i class="fa-solid fa-align-left"></i>
+                        <div th:text="${suKien.moTaNgan != null ? suKien.moTaNgan : 'Không có mô tả'}">Mô tả ngắn</div>
+                    </div>
+                    
+                    <div class="zone-pricing">
+                        <h3 style="margin-top: 0; color: #1e3a8a;">Bảng Giá Vé</h3>
+                        <div th:each="zone : ${zones}" class="zone-card">
+                            <div style="display:flex; align-items:center; gap: 10px;">
+                                <div th:style="'width: 16px; height: 16px; border-radius: 4px; background:' + ${zone.mauSacHienThi}"></div>
+                                <strong th:text="${zone.tenKhuVuc}">VIP</strong>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="color: #ef4444; font-weight: bold; display: block;" th:text="${#numbers.formatDecimal(zone.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1,000,000 VNĐ</span>
+                                <span style="color: #64748b; font-size: 13px;" th:text="'Còn trống: ' + (${zone.soGheToiDa} - (${zone.soGheDaBan != null ? zone.soGheDaBan : 0})) + '/' + ${zone.soGheToiDa}">Còn trống: 100/100</span>
+                            </div>
+                        </div>
+                        <div th:if="${zones == null or zones.isEmpty()}" style="color: #64748b; font-style: italic;">Sự kiện này chưa thiết lập sơ đồ ghế và giá vé.</div>
+                    </div>
+                    
+                    <a th:if="${canBuy and zones != null and !zones.isEmpty()}" th:href="@{/mua-ve/{id}(id=${suKien.maSK})}" class="btn-book" style="margin-top: 20px;">MUA VÉ NGAY</a>
+                    <button th:unless="${canBuy and zones != null and !zones.isEmpty()}" disabled class="btn-book" style="margin-top: 20px; background: #94a3b8; cursor: not-allowed;">
+                        <span th:if="${zones == null or zones.isEmpty()}">CHƯA THIẾT LẬP SƠ ĐỒ GHẾ</span>
+                        <span th:unless="${zones == null or zones.isEmpty()}">
+                            <span th:if="${suKien.trangThaiSK == 'Đang mở bán'}">HẾT HẠN MỞ BÁN</span>
+                            <span th:if="${suKien.trangThaiSK == 'Chưa mở bán'}">CHƯA MỞ BÁN</span>
+                            <span th:if="${suKien.trangThaiSK == 'Đã kết thúc'}">ĐÃ KẾT THÚC</span>
+                            <span th:if="${suKien.trangThaiSK == 'Đã hủy'}">ĐÃ HỦY</span>
+                            <span th:if="${suKien.trangThaiSK == 'Tạm ngưng'}">TẠM NGƯNG</span>
+                            <span th:if="${suKien.trangThaiSK != 'Đang mở bán' and suKien.trangThaiSK != 'Chưa mở bán' and suKien.trangThaiSK != 'Đã kết thúc' and suKien.trangThaiSK != 'Đã hủy' and suKien.trangThaiSK != 'Tạm ngưng'}">KHÔNG THỂ MUA VÉ</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết vé - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <style>
+            .detail-container {
+                max-width: 600px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .ticket-pass {
+                background: linear-gradient(145deg, #1e1b4b, #312e81);
+                color: white;
+                border-radius: var(--dd-radius-lg);
+                overflow: hidden;
+                box-shadow: 0 20px 50px rgba(49, 46, 129, 0.35);
+                position: relative;
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            .ticket-pass::before, .ticket-pass::after {
+                content: '';
+                position: absolute;
+                width: 30px;
+                height: 30px;
+                background: var(--dd-bg);
+                border-radius: 50%;
+                top: 60%;
+                z-index: 10;
+            }
+            .ticket-pass::before {
+                left: -15px;
+            }
+            .ticket-pass::after {
+                right: -15px;
+            }
+            .pass-header {
+                padding: 30px;
+                text-align: center;
+                border-bottom: 1px dashed rgba(255,255,255,0.15);
+            }
+            .pass-title {
+                font-family: "Be Vietnam Pro", "Inter", sans-serif;
+                font-size: 26px;
+                margin-bottom: 5px;
+                color: #e0e7ff;
+            }
+            .pass-body {
+                padding: 30px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .qr-large-wrapper {
+                background: white;
+                border-radius: var(--dd-radius);
+                padding: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+                margin-bottom: 25px;
+                display: inline-block;
+                transition: transform 0.3s;
+            }
+            .qr-large-wrapper:hover {
+                transform: scale(1.03);
+            }
+            .info-grid {
+                width: 100%;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                text-align: left;
+                margin-top: 15px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                padding-top: 20px;
+            }
+            .grid-label {
+                font-size: 12px;
+                color: #a5b4fc;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 4px;
+            }
+            .grid-value {
+                font-size: 15px;
+                font-weight: 600;
+                color: white;
+            }
+            .ticket-cut-line {
+                width: 100%;
+                height: 1px;
+                border-top: 2px dashed rgba(255,255,255,0.2);
+                margin: 20px 0;
+            }
+            .guidelines-box {
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: var(--dd-radius);
+                padding: 20px;
+                margin-top: 25px;
+                width: 100%;
+                text-align: left;
+            }
+            .guidelines-title {
+                font-weight: 600;
+                color: #e0e7ff;
+                font-size: 14px;
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .guideline-item {
+                font-size: 13px;
+                color: #c7d2fe;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .guideline-item i {
+                color: #818cf8;
+                margin-top: 3px;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <main layout:fragment="content">
+        <div class="detail-container">
+            <div class="mb-4 d-flex justify-content-between align-items-center">
+                <a href="/ve-cua-toi" class="btn-dd-outline"><i class="bi bi-arrow-left me-1"></i> Quay lại tủ vé</a>
+                <span class="text-muted" style="font-size: 13px;">Chi tiết vé soát</span>
+            </div>
+
+            <!-- Pass Ticket -->
+            <div class="ticket-pass animate__animated animate__zoomIn">
+                <div class="pass-header">
+                    <span class="dd-badge dd-badge-info mb-2" th:text="${ticket.tenKhuVuc}">VIP Zone</span>
+                    <h2 class="pass-title" th:text="${ticket.tenSuKien}">Tên Sự Kiện Đẳng Cấp</h2>
+                    <div style="font-size: 13px; color: #c7d2fe;" th:text="${ticket.thoiGianBatDau != null ? #dates.format(ticket.thoiGianBatDau, 'dd/MM/yyyy HH:mm') : 'Thời gian chưa công bố'}">Thời gian</div>
+                </div>
+
+                <div class="pass-body">
+                    <!-- QR lớn -->
+                    <div class="qr-large-wrapper">
+                        <img th:src="'data:image/png;base64,' + ${ticket.qrBase64}" alt="Large Entrance QR Code" width="280" height="280">
+                    </div>
+                    
+                    <div style="color: #a5b4fc; font-size: 12px; letter-spacing: 1px;" th:text="'MÃ QR PHỤC VỤ SOÁT VÉ'">MÃ QR PHỤC VỤ SOÁT VÉ</div>
+                    <div class="fw-bold mt-1 text-white" th:text="${ticket.maVe}" style="font-size: 18px;">VE-12345678</div>
+
+                    <!-- Lưới thông tin -->
+                    <div class="info-grid">
+                        <div>
+                            <div class="grid-label">Ghế ngồi</div>
+                            <div class="grid-value" th:text="${ticket.tenGhe}">Hàng B - 12</div>
+                        </div>
+                        <div>
+                            <div class="grid-label">Trạng thái</div>
+                            <div class="grid-value">
+                                <span th:if="${ticket.trangThaiVe == 'Chưa sử dụng'}" class="text-success"><i class="bi bi-patch-check-fill me-1"></i>Hợp lệ</span>
+                                <span th:if="${ticket.trangThaiVe == 'Đã sử dụng'}" class="text-warning"><i class="bi bi-clock-history me-1"></i>Đã sử dụng</span>
+                                <span th:if="${ticket.trangThaiVe == 'Đã hủy'}" class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Đã hủy</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="grid-label">Giá vé mua</div>
+                            <div class="grid-value" th:text="${#numbers.formatDecimal(ticket.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.000.000 VNĐ</div>
+                        </div>
+                        <div>
+                            <div class="grid-label">Mã an toàn QR</div>
+                            <div class="grid-value" style="font-size: 11px; word-break: break-all;" th:text="${#strings.substring(ticket.qrPayload, 0, 20)} + '...'">Payload...</div>
+                        </div>
+                    </div>
+
+                    <!-- Quy tắc an toàn checkin -->
+                    <div class="guidelines-box">
+                        <div class="guidelines-title">
+                            <i class="bi bi-shield-lock-fill"></i> HƯỚNG DẪN SOÁT VÉ & AN TOÀN
+                        </div>
+                        <div class="guideline-item">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Vui lòng xuất trình mã QR này trực tiếp trên màn hình điện thoại tại lối vào cổng soát vé.</span>
+                        </div>
+                        <div class="guideline-item">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Mỗi mã QR chỉ có giá trị cho một (1) lượt kiểm soát ra vào duy nhất. Không chia sẻ mã QR này với người lạ.</span>
+                        </div>
+                        <div class="guideline-item">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Có mặt trước giờ bắt đầu sự kiện ít nhất 30 phút để hoàn tất thủ tục check-in nhanh nhất.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

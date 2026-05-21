@@ -1,0 +1,5 @@
+CREATE TABLE LOAISUKIEN (
+    MaLoaiSK        VARCHAR2(50) PRIMARY KEY,
+    TenLoaiSK       VARCHAR2(100),
+    MoTa            VARCHAR2(255)
+);

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hàng đợi ảo - Dề Dê Tickets</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e1b4b);
+            color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Be Vietnam Pro", "Inter", "Noto Sans", system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .queue-container {
+            max-width: 650px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .queue-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #6366f1, #a855f7);
+        }
+
+        .logo-area {
+            font-size: 28px;
+            font-weight: 800;
+            color: #3b82f6;
+            margin-bottom: 25px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .event-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .event-card img {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .event-info h3 {
+            margin: 0 0 5px;
+            font-size: 18px;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .event-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .spinner-wrapper {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 30px auto;
+        }
+
+        .spin-loader {
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+            border: 5px solid rgba(59, 130, 246, 0.1);
+            border-top: 5px solid #3b82f6;
+            border-right: 5px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1.5s cubic-bezier(0.53, 0.21, 0.29, 0.67) infinite;
+        }
+
+        .pos-number {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 26px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .waiting-text {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        .sub-text {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .progress-bar-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #3b82f6, #6366f1);
+            height: 100%;
+            width: 0%;
+            transition: width 1s ease-in-out;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .status-badge.allowed {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .demo-admin-panel {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px dashed rgba(239, 68, 68, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .demo-admin-panel h4 {
+            margin: 0 0 10px;
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-demo {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .btn-demo:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="queue-container">
+        <!-- Logo Header -->
+        <div class="logo-area">
+            <i class="fa-solid fa-ticket"></i> Dề Dê Tickets
+        </div>
+
+        <!-- Event Poster & Info -->
+        <div class="event-card">
+            <img th:src="${suKien.hinhAnh != null ? suKien.hinhAnh : 'https://placehold.co/400x500/e2e8f0/64748b?text=Poster'}" onerror="this.src='https://placehold.co/400x500/e2e8f0/64748b?text=Poster'" alt="Poster">
+            <div class="event-info">
+                <h3 th:text="${suKien.tenSK}">Tên sự kiện</h3>
+                <p><i class="fa-solid fa-location-dot"></i> <span th:text="${suKien.maDiaDiem}">Địa điểm</span></p>
+                <p style="margin-top: 4px;"><i class="fa-solid fa-calendar"></i> <span th:text="${suKien.thoiGianBatDau != null ? #dates.format(suKien.thoiGianBatDau, 'HH:mm - dd/MM/yyyy') : 'Đang cập nhật'}">Thời gian</span></p>
+            </div>
+        </div>
+
+        <!-- Queue Status Badge -->
+        <div id="statusBadge" class="status-badge">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> <span id="statusLabel">ĐANG XẾP HÀNG</span>
+        </div>
+
+        <!-- Spinning Position Indicator -->
+        <div class="spinner-wrapper">
+            <div class="spin-loader"></div>
+            <div class="pos-number" id="positionText" th:text="${currentPosition}">1</div>
+        </div>
+
+        <div class="waiting-text" id="waitingHeader">Vui lòng chờ trong giây lát</div>
+        <div class="sub-text" id="waitingDesc">Sự kiện này đang có lượng truy cập rất lớn. Bạn đã được đưa vào hàng đợi ảo tự động để bảo vệ hệ thống.</div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Vị trí của bạn</div>
+                <div class="stat-value" id="statPosition" th:text="${currentPosition}">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Thời gian ước tính</div>
+                <div class="stat-value" id="statTime">Đang tính...</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+
+        <div style="font-size: 13px; color: #64748b;">
+            <i class="fa-solid fa-shield-halved"></i> Hệ thống tự động làm mới mỗi 5 giây. Không đóng trình duyệt hoặc tải lại trang.
+        </div>
+
+        <!-- Demo Admin Panel (Only visible for Admins/Organizers) -->
+        <div class="demo-admin-panel" th:if="${session.roles != null and (#lists.contains(session.roles, 'ADMIN') or #lists.contains(session.roles, 'ORGANIZER'))}">
+            <h4><i class="fa-solid fa-gears"></i> DEMO ADMIN PANEL (Chỉ hiện cho Quản trị)</h4>
+            <p style="font-size: 13px; color: #94a3b8; margin: 0 0 15px;">Dùng nút dưới để đẩy hàng đợi nhanh hơn trong quá trình kiểm thử / demo:</p>
+            <button class="btn-demo" onclick="triggerAllowNext()">
+                <i class="fa-solid fa-angles-right"></i> Duyệt thêm 10 người vào chọn ghế
+            </button>
+        </div>
+    </div>
+
+    <!-- Script block -->
+    <script th:inline="javascript">
+        const token = /*[[${queueRecord.tokenHangDoi}]]*/ '';
+        const maSK = /*[[${suKien.maSK}]]*/ '';
+        let initialPos = parseInt(/*[[${currentPosition}]]*/ '1') || 1;
+        if (initialPos < 1) initialPos = 1;
+
+        function updateEstTime(position) {
+            const timeEl = document.getElementById('statTime');
+            if (position <= 0) {
+                timeEl.textContent = 'Đến lượt!';
+                return;
+            }
+            const seconds = position * 30;
+            if (seconds < 60) {
+                timeEl.textContent = `< 1 phút`;
+            } else {
+                const mins = Math.ceil(seconds / 60);
+                timeEl.textContent = `~ ${mins} phút`;
+            }
+        }
+
+        // Initialize estimated wait time
+        updateEstTime(initialPos);
+
+        // Periodically poll waitlist status
+        const pollInterval = setInterval(() => {
+            fetch(`/api/hang-doi/status?token=${token}`)
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const status = d.trangThai;
+                    const pos = d.viTriHang;
+
+                    // Update UI values
+                    document.getElementById('positionText').textContent = status === 'Được vào' ? '✓' : pos;
+                    document.getElementById('statPosition').textContent = status === 'Được vào' ? 'Đến lượt' : pos;
+                    
+                    updateEstTime(pos);
+
+                    // Update Progress Bar
+                    const progress = Math.max(5, Math.min(95, ((initialPos - pos) / initialPos) * 100));
+                    document.getElementById('progressBar').style.width = `${status === 'Được vào' ? 100 : progress}%`;
+
+                    if (status === 'Được vào') {
+                        clearInterval(pollInterval);
+                        
+                        // Transition UI to Allowed
+                        const badge = document.getElementById('statusBadge');
+                        badge.className = 'status-badge allowed';
+                        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>ĐÃ ĐƯỢC PHÉP VÀO MUA VÉ</span>';
+
+                        document.getElementById('waitingHeader').textContent = 'Đang chuyển hướng...';
+                        document.getElementById('waitingHeader').style.color = '#10b981';
+                        document.getElementById('waitingDesc').textContent = 'Đã đến lượt của bạn! Hệ thống đang tự động chuyển hướng sang trang chọn ghế.';
+
+                        setTimeout(() => {
+                            window.location.href = `/mua-ve/${maSK}?queueToken=${d.tokenHangDoi}`;
+                        }, 1500);
+                    } else if (status === 'Hết hạn') {
+                        clearInterval(pollInterval);
+                        alert("Hàng đợi của bạn đã hết hạn hoặc không hợp lệ. Vui lòng thử lại!");
+                        window.location.href = `/su-kien/${maSK}`;
+                    }
+                }
+            })
+            .catch(e => console.error("Error polling queue status:", e));
+        }, 5000);
+
+        // Admin Trigger helper
+        function triggerAllowNext() {
+            fetch(`/api/hang-doi/allow-next?maSK=${maSK}&limit=10`, {
+                method: 'POST'
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    alert("Đã duyệt thành công! Trình duyệt sẽ tự động cập nhật trạng thái sau tối đa 5 giây.");
+                } else {
+                    alert("Lỗi: " + d.message);
+                }
+            })
+            .catch(e => alert("Lỗi kết nối tới server"));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Báo cáo &amp; Thống kê doanh thu - Dề Dê Tickets</title>
+    <!-- Custom Page CSS for advanced dashboard aesthetics -->
+    <style layout:fragment="page-css">
+        :root {
+            --card-shadow: 0 10px 30px -5px rgba(0,0,0,0.05), 0 5px 15px -8px rgba(0,0,0,0.05);
+            --gradient-1: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            --gradient-2: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+            --gradient-3: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            --gradient-4: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            --gradient-5: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+        }
+
+        .dashboard-page {
+            background-color: #f1f5f9;
+        }
+
+        .dashboard-container {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        .stat-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 4px;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.08);
+        }
+
+        .stat-card.primary::before { background: var(--gradient-1); }
+        .stat-card.info::before { background: var(--gradient-2); }
+        .stat-card.success::before { background: var(--gradient-3); }
+        .stat-card.warning::before { background: var(--gradient-4); }
+        .stat-card.danger::before { background: var(--gradient-5); }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #ffffff;
+        }
+
+        .bg-gradient-primary { background: var(--gradient-1); }
+        .bg-gradient-info { background: var(--gradient-2); }
+        .bg-gradient-success { background: var(--gradient-3); }
+        .bg-gradient-warning { background: var(--gradient-4); }
+        .bg-gradient-danger { background: var(--gradient-5); }
+
+        .filter-card {
+            background: #ffffff;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            height: 100%;
+        }
+
+        .table-card {
+            background: #ffffff;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .table-dd thead th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 16px;
+        }
+
+        .table-dd tbody td {
+            padding: 16px;
+            vertical-align: middle;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .table-dd tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-action {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .badge-xem { background-color: rgba(59, 130, 246, 0.1); color: #2563eb; }
+        .badge-click { background-color: rgba(245, 158, 11, 0.1); color: #d97706; }
+        .badge-bogio { background-color: rgba(239, 68, 68, 0.1); color: #dc2626; }
+
+        .device-badge {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-filter-apply {
+            background: var(--gradient-1);
+            border: none;
+            color: white;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-filter-apply:hover {
+            opacity: 0.95;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            color: white;
+        }
+
+        .btn-filter-reset {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-filter-reset:hover {
+            background-color: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .sub-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 12px;
+        }
+
+        .sub-stat-item {
+            text-align: center;
+        }
+        .sub-stat-val {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+        .sub-stat-lbl {
+            font-size: 10px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .value-large {
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #0f172a;
+        }
+
+        .chart-empty-state {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #64748b;
+            font-weight: 600;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <main layout:fragment="content" class="dashboard-page">
+        <div class="dashboard-container">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="fw-bold text-dark mb-1" style="font-family: 'Be Vietnam Pro', 'Inter', sans-serif; font-size: 32px;">Báo cáo &amp; Dashboard hành vi</h1>
+                    <p class="text-muted mb-0" style="font-size: 14px;">Phân tích thống kê doanh thu bán vé và đo lường hành vi tương tác của khách hàng.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-white border text-dark px-3 py-2 rounded-pill font-monospace" style="font-size: 13px;">
+                        <i class="bi bi-clock me-1 text-primary"></i>
+                        Hôm nay: <span id="currentDateTime">--/--/----</span>
+                    </span>
+                </div>
+            </div>
+
+            <div th:if="${errorMessage != null}" class="alert alert-warning border-0 shadow-sm rounded-3 mb-4">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span th:text="${errorMessage}">Không thể tải dữ liệu báo cáo.</span>
+            </div>
+
+            <!-- Bộ lọc -->
+            <div class="filter-card">
+                <h5 class="fw-bold mb-3" style="font-size: 16px;"><i class="bi bi-funnel me-2 text-primary"></i>Bộ lọc báo cáo</h5>
+                <form method="get" th:action="@{/baocao}" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="maSK" class="form-label text-muted small fw-semibold">Sự kiện</label>
+                        <select name="maSK" id="maSK" class="form-select rounded-3">
+                            <option value="">Tất cả sự kiện</option>
+                            <option th:each="sk : ${suKiens}" 
+                                    th:value="${sk.maSK}" 
+                                    th:text="${sk.maSK + ' - ' + sk.tenSK}"
+                                    th:selected="${sk.maSK == maSKSelected}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2.5 col-sm-6 col-md-3">
+                        <label for="tuNgay" class="form-label text-muted small fw-semibold">Từ ngày</label>
+                        <input type="date" name="tuNgay" id="tuNgay" class="form-select rounded-3" th:value="${tuNgaySelected}">
+                    </div>
+                    <div class="col-md-2.5 col-sm-6 col-md-3">
+                        <label for="denNgay" class="form-label text-muted small fw-semibold">Đến ngày</label>
+                        <input type="date" name="denNgay" id="denNgay" class="form-select rounded-3" th:value="${denNgaySelected}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="trangThaiDonHang" class="form-label text-muted small fw-semibold">Trạng thái đơn hàng</label>
+                        <select name="trangThaiDonHang" id="trangThaiDonHang" class="form-select rounded-3">
+                            <option value="">Tất cả đơn hàng</option>
+                            <option value="Chờ thanh toán" th:selected="${trangThaiSelected == 'Chờ thanh toán'}">Chờ thanh toán</option>
+                            <option value="Đã thanh toán" th:selected="${trangThaiSelected == 'Đã thanh toán'}">Đã thanh toán</option>
+                            <option value="Đã hủy" th:selected="${trangThaiSelected == 'Đã hủy'}">Đã hủy</option>
+                        </select>
+                    </div>
+                    <div class="col-12 d-flex justify-content-end gap-2 mt-4">
+                        <a th:href="@{/baocao}" class="btn btn-filter-reset px-4 py-2 rounded-3"><i class="bi bi-x-circle me-2"></i>Xóa bộ lọc</a>
+                        <button type="submit" class="btn btn-filter-apply px-4 py-2 rounded-3"><i class="bi bi-funnel-fill me-2"></i>Lọc dữ liệu</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Chỉ số tổng quan -->
+            <div class="row g-3 mb-4">
+                <!-- Doanh thu -->
+                <div class="col-md-4 col-lg-3">
+                    <div class="card stat-card primary h-100 p-3 ui-hover-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted fw-semibold small">Tổng doanh thu</span>
+                            <div class="stat-icon bg-gradient-primary">
+                                <i class="bi bi-currency-dollar"></i>
+                            </div>
+                        </div>
+                        <div class="value-large mb-1 report-money" th:text="${tongQuan.tongDoanhThu != null ? #numbers.formatDecimal(tongQuan.tongDoanhThu, 0, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</div>
+                        <span class="text-muted small"><i class="bi bi-check-circle-fill text-success me-1"></i>Đơn hàng đã thanh toán</span>
+                    </div>
+                </div>
+
+                <!-- Vé bán -->
+                <div class="col-md-4 col-lg-3">
+                    <div class="card stat-card info h-100 p-3 ui-hover-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted fw-semibold small">Vé đã bán thành công</span>
+                            <div class="stat-icon bg-gradient-info">
+                                <i class="bi bi-ticket-perforated"></i>
+                            </div>
+                        </div>
+                        <div class="value-large mb-1" th:text="${#numbers.formatDecimal(tongQuan.tongVeDaBan, 0, 'POINT', 0, 'COMMA')}">0</div>
+                        <span class="text-muted small"><i class="bi bi-award-fill text-primary me-1"></i>Vé thuộc đơn đã thanh toán</span>
+                    </div>
+                </div>
+
+                <!-- Trạng thái đơn -->
+                <div class="col-md-4 col-lg-3">
+                    <div class="card stat-card warning h-100 p-3 ui-hover-card">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span class="text-muted fw-semibold small">Tổng quan đơn hàng</span>
+                            <div class="stat-icon bg-gradient-warning">
+                                <i class="bi bi-receipt"></i>
+                            </div>
+                        </div>
+                        <div class="sub-stat-grid">
+                            <div class="sub-stat-item">
+                                <div class="sub-stat-val" th:text="${tongQuan.donChoThanhToan}">0</div>
+                                <div class="sub-stat-lbl">Chờ</div>
+                            </div>
+                            <div class="sub-stat-item" style="border-left: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9;">
+                                <div class="sub-stat-val text-success" th:text="${tongQuan.donDaThanhToan}">0</div>
+                                <div class="sub-stat-lbl">Thành công</div>
+                            </div>
+                            <div class="sub-stat-item">
+                                <div class="sub-stat-val text-danger" th:text="${tongQuan.donDaHuy}">0</div>
+                                <div class="sub-stat-lbl">Hủy</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tỷ lệ thanh toán thành công + lấp đầy -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="card stat-card success h-100 p-3 ui-hover-card">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted fw-semibold small">Tỷ lệ hiệu suất</span>
+                            <div class="stat-icon bg-gradient-success">
+                                <i class="bi bi-lightning-charge"></i>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Thanh toán TC:</span>
+                                <span class="fw-bold text-dark" th:text="${#numbers.formatDecimal(tongQuan.tyLeThanhToanThanhCong, 1, 2) + '%'}">0%</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Tỷ lệ lấp đầy TB:</span>
+                                <span class="fw-bold text-dark" th:text="${#numbers.formatDecimal(tongQuan.tyLeLapDayTB, 1, 2) + '%'}">0%</span>
+                            </div>
+                        </div>
+                        <div class="border-top mt-2 pt-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small text-truncate">Bán chạy nhất:</span>
+                            <span class="fw-bold text-indigo text-truncate max-w-150px" style="font-size: 11px;" th:text="${tongQuan.suKienBanChayNhat}">N/A</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biểu đồ -->
+            <div class="row g-3 mb-4">
+                <div class="col-lg-7">
+                    <div class="chart-card">
+                        <h5 class="fw-bold mb-3 text-dark" style="font-size: 16px;"><i class="bi bi-bar-chart-line me-2 text-indigo"></i>Doanh thu theo sự kiện</h5>
+                        <div style="position: relative; height: 320px;">
+                            <canvas id="revenueChart"></canvas>
+                            <div id="revenueChartEmpty" class="chart-empty-state" style="display: none;">Chưa có dữ liệu doanh thu</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="chart-card">
+                        <h5 class="fw-bold mb-3 text-dark" style="font-size: 16px;"><i class="bi bi-pie-chart me-2 text-info"></i>Tỷ lệ vé bán của các sự kiện</h5>
+                        <div style="position: relative; height: 320px;">
+                            <canvas id="ticketsChart"></canvas>
+                            <div id="ticketsChartEmpty" class="chart-empty-state" style="display: none;">Chưa có dữ liệu vé bán</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng báo cáo theo sự kiện -->
+            <div class="card table-card mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 16px;"><i class="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Thống kê chi tiết theo sự kiện</h5>
+                    <span class="badge bg-light text-muted border px-2 py-1 rounded" style="font-size: 12px;" th:text="${baoCaoSuKienList != null ? baoCaoSuKienList.size() + ' sự kiện' : '0 sự kiện'}">0 sự kiện</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-dd align-middle mb-0 report-table">
+                        <thead>
+                            <tr>
+                                <th>Mã SK</th>
+                                <th>Tên sự kiện</th>
+                                <th class="text-end">Tổng số vé</th>
+                                <th class="text-end">Vé đã bán</th>
+                                <th class="text-end">Vé còn lại</th>
+                                <th class="text-end money-cell">Doanh thu</th>
+                                <th class="text-end">Lấp đầy</th>
+                                <th class="text-end">Lượt Xem</th>
+                                <th class="text-end">Lượt Click</th>
+                                <th class="text-end">Bỏ giỏ</th>
+                                <th class="text-end">Chuyển đổi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${baoCaoSuKienList == null or baoCaoSuKienList.isEmpty()}">
+                                <td colspan="11" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-3 mb-2 d-block"></i>
+                                    Không tìm thấy dữ liệu sự kiện phù hợp bộ lọc.
+                                </td>
+                            </tr>
+                            <tr th:each="row : ${baoCaoSuKienList}">
+                                <td class="fw-bold" th:text="${row.maSK}">SK-011</td>
+                                <td class="text-truncate fw-medium text-dark" style="max-width: 200px;" th:text="${row.tenSK}">Tên sự kiện</td>
+                                <td class="text-end" th:text="${#numbers.formatDecimal(row.tongSoVe, 0, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="text-end fw-semibold text-primary" th:text="${#numbers.formatDecimal(row.soVeDaBan, 0, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="text-end text-muted" th:text="${#numbers.formatDecimal(row.soVeConLai, 0, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="text-end fw-bold text-success money-cell">
+                                    <span class="report-money" th:text="${row.doanhThu != null ? #numbers.formatDecimal(row.doanhThu, 0, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">0 ₫</span>
+                                </td>
+                                <td class="text-end text-dark">
+                                    <span th:text="${#numbers.formatDecimal(row.tyLeLapDay, 1, 2) + '%'}">0.00%</span>
+                                    <div class="progress mt-1" style="height: 4px;">
+                                        <div class="progress-bar bg-success" role="progressbar" th:style="'width: ' + ${T(java.lang.Math).min(row.tyLeLapDay, 100.0)} + '%'"></div>
+                                    </div>
+                                </td>
+                                <td class="text-end" th:text="${#numbers.formatDecimal(row.luotXem, 0, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="text-end" th:text="${#numbers.formatDecimal(row.luotClick, 0, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="text-end text-danger" th:text="${#numbers.formatDecimal(row.luotBoGioHang, 0, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="text-end fw-bold text-indigo" th:text="${#numbers.formatDecimal(row.tyLeChuyenDoi, 1, 2) + '%'}">0.00%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Bảng nhật ký hành vi -->
+            <div class="card table-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark" style="font-size: 16px;"><i class="bi bi-activity me-2 text-danger"></i>Nhật ký hành vi khách hàng</h5>
+                        <p class="text-muted small mb-0 mt-1">Lịch sử 50 hoạt động tương tác gần nhất của người dùng.</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-dd align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Khách hàng</th>
+                                <th>Hành động</th>
+                                <th>Sự kiện liên quan</th>
+                                <th>Thiết bị</th>
+                                <th>Mã Log</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${hanhViList == null or hanhViList.isEmpty()}">
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-activity fs-3 mb-2 d-block"></i>
+                                    Chưa ghi nhận hoạt động tương tác nào của người dùng.
+                                </td>
+                            </tr>
+                            <tr th:each="log : ${hanhViList}">
+                                <td class="text-muted" th:text="${log.thoiGian != null ? #dates.format(log.thoiGian, 'dd/MM/yyyy HH:mm:ss') : '-'}">--/--/---- --:--:--</td>
+                                <td class="fw-medium text-dark">
+                                    <i class="bi bi-person-circle me-1 text-secondary"></i>
+                                    <span th:text="${log.tenKH != null ? log.tenKH : 'Khách vãng lai'}">Khách vãng lai</span>
+                                    <small class="text-muted d-block" style="font-size: 10px;" th:if="${log.maKH != null}" th:text="'ID: ' + ${log.maKH}"></small>
+                                </td>
+                                <td>
+                                    <span th:if="${log.loaiHanhDong == 'XEM_SK'}" class="badge badge-action badge-xem"><i class="bi bi-eye-fill me-1"></i>Xem chi tiết</span>
+                                    <span th:if="${log.loaiHanhDong == 'CLICK_DAT_VE'}" class="badge badge-action badge-click"><i class="bi bi-cart-check-fill me-1"></i>Click đặt vé</span>
+                                    <span th:if="${log.loaiHanhDong == 'BO_GIO_HANG'}" class="badge badge-action badge-bogio"><i class="bi bi-cart-x-fill me-1"></i>Hủy/Bỏ giỏ</span>
+                                    <span th:if="${log.loaiHanhDong != 'XEM_SK' and log.loaiHanhDong != 'CLICK_DAT_VE' and log.loaiHanhDong != 'BO_GIO_HANG'}" 
+                                          class="badge bg-secondary text-white text-uppercase" th:text="${log.loaiHanhDong}"></span>
+                                </td>
+                                <td class="text-truncate fw-medium" style="max-width: 250px;" th:text="${log.maSK != null ? log.maSK + ' - ' + log.tenSK : 'Toàn hệ thống'}">Tên sự kiện</td>
+                                <td>
+                                    <span class="device-badge">
+                                        <i th:class="${log.thietBi == 'Mobile' ? 'bi bi-phone-fill text-primary' : 'bi bi-laptop-fill text-secondary'}"></i>
+                                        <span th:text="${log.thietBi}">Web</span>
+                                    </span>
+                                </td>
+                                <td class="font-monospace text-muted small" th:text="${log.maLog}">LOG-00000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JS riêng từng trang - Tích hợp Chart.js an toàn -->
+    <th:block layout:fragment="page-js">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script th:inline="javascript">
+            // Set current time
+            const now = new Date();
+            document.getElementById('currentDateTime').innerText = now.toLocaleDateString('vi-VN') + ' ' + now.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+
+            // Safe JSON arrays from controller
+            /*<![CDATA[*/
+            const rawLabels = /*[[${chartLabels}]]*/ [];
+            const rawRevenueData = /*[[${chartRevenueData}]]*/ [];
+            const rawSoldTicketsData = /*[[${chartSoldTicketsData}]]*/ [];
+            /*]]>*/
+
+            const labels = Array.isArray(rawLabels) ? rawLabels : [];
+            const revenueData = Array.isArray(rawRevenueData) ? rawRevenueData.map(v => Number(v || 0)) : [];
+            const soldTicketsData = Array.isArray(rawSoldTicketsData) ? rawSoldTicketsData.map(v => Number(v || 0)) : [];
+            const colors = [];
+
+            // Modern color palette
+            const palette = [
+                '#4f46e5', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444',
+                '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'
+            ];
+
+            const hasRealEventData = labels.length > 0;
+            if (!hasRealEventData) {
+                labels.push('Chưa có dữ liệu');
+                revenueData.push(0);
+                soldTicketsData.push(0);
+            }
+
+            labels.forEach((_, index) => colors.push(palette[index % palette.length]));
+
+            function setChartEmptyState(elementId, visible) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.style.display = visible ? 'flex' : 'none';
+                }
+            }
+
+            setChartEmptyState('revenueChartEmpty', !hasRealEventData || revenueData.every(v => v === 0));
+            setChartEmptyState('ticketsChartEmpty', !hasRealEventData || soldTicketsData.every(v => v === 0));
+
+            if (typeof Chart !== 'undefined') {
+                try {
+                    // 1. Revenue Chart (Bar)
+                    const ctxRev = document.getElementById('revenueChart').getContext('2d');
+                    new Chart(ctxRev, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Doanh thu (VNĐ)',
+                                data: revenueData,
+                                backgroundColor: colors,
+                                borderRadius: 8,
+                                borderWidth: 0,
+                                barPercentage: 0.6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let value = context.raw;
+                                            return 'Doanh thu: ' + value.toLocaleString('vi-VN') + ' đ';
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: '#f1f5f9' },
+                                    ticks: {
+                                        callback: function(value) {
+                                            if (value >= 1e6) return (value / 1e6) + 'M đ';
+                                            if (value >= 1e3) return (value / 1e3) + 'K đ';
+                                            return value + ' đ';
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: {
+                                        maxRotation: 15,
+                                        minRotation: 0,
+                                        callback: function(value, index) {
+                                            const label = String(labels[index] || '');
+                                            return label.length > 15 ? label.substring(0, 15) + '...' : label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // 2. Tickets Chart (Doughnut / Pie)
+                    const ctxTick = document.getElementById('ticketsChart').getContext('2d');
+                    const hasTickets = soldTicketsData.some(v => v > 0);
+                    
+                    new Chart(ctxTick, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: hasTickets ? soldTicketsData : [1],
+                                backgroundColor: hasTickets ? colors : ['#cbd5e1'],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        boxWidth: 12,
+                                        font: { size: 11 },
+                                        generateLabels: function(chart) {
+                                            if (!hasTickets) {
+                                                return [{ text: 'Chưa có vé bán', fillStyle: '#cbd5e1', strokeStyle: '#ffffff' }];
+                                            }
+                                            return Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    enabled: hasTickets,
+                                    callbacks: {
+                                        label: function(context) {
+                                            let value = context.raw;
+                                            return ' Đã bán: ' + value.toLocaleString('vi-VN') + ' vé';
+                                        }
+                                    }
+                                }
+                            },
+                            cutout: '65%'
+                        }
+                    });
+                } catch (e) {
+                    console.error("Lỗi khởi tạo biểu đồ Chart.js: ", e);
+                }
+            } else {
+                console.warn("Chart.js CDN không thể tải hoặc bị chặn.");
+                setChartEmptyState('revenueChartEmpty', true);
+                setChartEmptyState('ticketsChartEmpty', true);
+            }
+        </script>
+    </th:block>
+</body>
+</html>

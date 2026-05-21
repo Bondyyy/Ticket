@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Đơn Hàng - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/QLDH.css}">
+    </th:block>
+</head>
+
+<body>
+<div layout:fragment="content" class="admin-page">
+<!-- ===================== MAIN CONTENT ===================== -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="main-header">
+                <h2><i class="fa-solid fa-receipt" style="margin-right:10px;color:#3b82f6;"></i>Quản Lý Đơn Hàng</h2>
+                <div class="header-right">
+                    <i class="fa-solid fa-bell" title="Thông báo"></i>
+                    <span>Hôm nay: <b id="currentDate"></b></span>
+                </div>
+            </header>
+
+            <div class="content-area">
+
+                <!-- Stat Cards -->
+                <div class="stat-row">
+                    <div class="stat-card ui-hover-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-cart-shopping"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-label">Tổng đơn hàng</div>
+                        </div>
+                    </div>
+                    <div class="stat-card ui-hover-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statPaid">0</div>
+                            <div class="stat-label">Đã thanh toán</div>
+                        </div>
+                    </div>
+                    <div class="stat-card ui-hover-card">
+                        <div class="stat-icon yellow"><i class="fa-solid fa-clock"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statWait">0</div>
+                            <div class="stat-label">Chờ thanh toán</div>
+                        </div>
+                    </div>
+                    <div class="stat-card ui-hover-card">
+                        <div class="stat-icon red"><i class="fa-solid fa-ban"></i></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="statCancel">0</div>
+                            <div class="stat-label">Đã hủy</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert -->
+                <div id="alertMessage" class="alert-box"></div>
+
+                <!-- Toolbar: Search & Filter -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Số đơn, mã KH...">
+                        </div>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Đã thanh toán">Đã thanh toán</option>
+                            <option value="Chờ thanh toán">Chờ thanh toán</option>
+                            <option value="Đã hủy">Đã hủy</option>
+                        </select>
+                        <button class="btn-filter" onclick="filterTable()">
+                            <i class="fa-solid fa-filter"></i> Lọc
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Số Đơn Hàng</th>
+                                    <th>Khách Hàng</th>
+                                    <th class="money-cell">Tổng Tiền</th>
+                                    <th class="money-cell">Thành Tiền</th>
+                                    <th>Thời Gian Đặt</th>
+                                    <th>Hết Hạn</th>
+                                    <th style="text-align:center;">Trạng Thái</th>
+                                    <th style="text-align:center;">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orderTableBody">
+                                <!-- Empty state -->
+                                <tr th:if="${donHangList == null or donHangList.isEmpty()}">
+                                    <td colspan="8" style="text-align:center;padding:30px;color:#93c5fd;">
+                                        <i class="fa-solid fa-inbox"
+                                            style="font-size:28px;margin-bottom:8px;display:block;"></i>
+                                        Chưa có đơn hàng nào trong hệ thống.
+                                    </td>
+                                </tr>
+                                <!-- Data rows -->
+                                <tr th:each="dh : ${donHangList}" th:attr="data-ma=${dh.maDonHang}"
+                                    onclick="xemChiTiet(this.getAttribute('data-ma'))">
+                                    <td><b th:text="${dh.soDonHang != null ? dh.soDonHang : dh.maDonHang}">DH001</b>
+                                    </td>
+                                    <td th:text="${dh.maKH != null and mapKhachHang.containsKey(dh.maKH) ? mapKhachHang.get(dh.maKH) : (dh.maKH != null ? dh.maKH : '-')}">-</td>
+                                    <td class="money-cell">
+                                        <span class="money" th:if="${dh.tongTien != null}" th:text="${#numbers.formatDecimal(dh.tongTien, 0, 'POINT', 0, 'COMMA') + ' ₫'}">0 ₫</span>
+                                        <span th:unless="${dh.tongTien != null}">-</span>
+                                    </td>
+                                    <td class="money-cell">
+                                        <span class="money" th:if="${dh.thanhTien != null}" th:text="${#numbers.formatDecimal(dh.thanhTien, 0, 'POINT', 0, 'COMMA') + ' ₫'}">0 ₫</span>
+                                        <span th:unless="${dh.thanhTien != null}">-</span>
+                                    </td>
+                                    <td th:text="${dh.thoiGianDat != null ? dh.thoiGianDat : '-'}">-</td>
+                                    <td th:text="${dh.thoiGianHetHan != null ? dh.thoiGianHetHan : '-'}">-</td>
+                                    <td style="text-align:center;">
+                                        <span th:if="${dh.trangThaiDonHang == 'Đã thanh toán'}"
+                                            class="badge badge-paid">Đã thanh toán</span>
+                                        <span th:if="${dh.trangThaiDonHang == 'Chờ thanh toán'}"
+                                            class="badge badge-wait">Chờ thanh toán</span>
+                                        <span th:if="${dh.trangThaiDonHang == 'Đã hủy'}" class="badge badge-cancel">Đã
+                                            hủy</span>
+                                        <span
+                                            th:if="${dh.trangThaiDonHang != 'Đã thanh toán' and dh.trangThaiDonHang != 'Chờ thanh toán' and dh.trangThaiDonHang != 'Đã hủy'}"
+                                            class="badge badge-wait" th:text="${dh.trangThaiDonHang}">?</span>
+                                    </td>
+                                    <td style="text-align:center;" onclick="event.stopPropagation()">
+                                        <button class="btn-action btn-detail"
+                                            th:attr="onclick='xemChiTiet(\'' + ${dh.maDonHang} + '\')'"
+                                            title="Xem chi tiết">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                        <button class="btn-action btn-cancel-order"
+                                            th:disabled="${dh.trangThaiDonHang == 'Đã hủy'}"
+                                            th:attr="onclick='huyDon(\'' + ${dh.maDonHang} + '\')'" title="Hủy đơn">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar">
+                        <span>Hiển thị <b th:text="${donHangList != null ? donHangList.size() : 0}">0</b> đơn
+                            hàng</span>
+                        <div style="display:flex;gap:4px;">
+                            <button class="pag-btn">&laquo;</button>
+                            <button class="pag-btn active">1</button>
+                            <button class="pag-btn">&raquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    <!-- ===================== MODAL CHI TIẾT ===================== -->
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-invoice" style="margin-right:8px;color:#3b82f6;"></i>Chi Tiết Đơn Hàng
+                </h3>
+                <button class="btn-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="label">Mã đơn hàng</span>
+                        <span class="value" id="d_maDonHang">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Số đơn hàng</span>
+                        <span class="value" id="d_soDonHang">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Mã khách hàng</span>
+                        <span class="value" id="d_maKH">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Mã nhân viên</span>
+                        <span class="value" id="d_maNV">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Thời gian đặt</span>
+                        <span class="value" id="d_thoiGianDat">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Thời gian hết hạn</span>
+                        <span class="value" id="d_thoiGianHetHan">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Mã giảm giá</span>
+                        <span class="value" id="d_maPGG">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Trạng thái</span>
+                        <span class="value" id="d_trangThai">-</span>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <div class="money-highlight">
+                    <div>
+                        <div class="money-label">Tổng tiền gốc</div>
+                        <div style="font-size:13px;color:#64748b;margin-top:2px;" id="d_tongTienSub">-</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:12px;color:#64748b;font-weight:600;">Thành tiền (sau giảm giá)</div>
+                        <div class="money-value" id="d_thanhTien">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-close-modal" onclick="closeModal()">Đóng</button>
+                <button class="btn-cancel-action" id="btnHuyTrongModal" onclick="huyDonTuModal()">
+                    <i class="fa-solid fa-ban"></i> Hủy đơn hàng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== JAVASCRIPT ===================== -->
+    <script th:inline="javascript">
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
+
+        // Đếm thống kê từ dữ liệu server render
+        (function countStats() {
+            const rows = document.querySelectorAll('#orderTableBody tr[data-ma]');
+            let total = rows.length, paid = 0, wait = 0, cancel = 0;
+            rows.forEach(row => {
+                const badge = row.querySelector('.badge');
+                if (!badge) return;
+                const txt = badge.textContent.trim();
+                if (txt === 'Đã thanh toán') paid++;
+                else if (txt === 'Chờ thanh toán') wait++;
+                else if (txt === 'Đã hủy') cancel++;
+            });
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statPaid').innerText = paid;
+            document.getElementById('statWait').innerText = wait;
+            document.getElementById('statCancel').innerText = cancel;
+        })();
+
+        // Filter client-side (tra cứu nhanh)
+        function filterTable() {
+            const kw = document.getElementById('searchInput').value.toLowerCase();
+            const st = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('#orderTableBody tr[data-ma]');
+            let visible = 0;
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const badge = row.querySelector('.badge');
+                const matchKw = kw === '' || text.includes(kw);
+                const matchSt = st === '' || (badge && badge.textContent.trim() === st);
+                row.style.display = (matchKw && matchSt) ? '' : 'none';
+                if (matchKw && matchSt) visible++;
+            });
+            document.querySelector('.pagination-bar b').innerText = visible;
+        }
+
+        document.getElementById('searchInput').addEventListener('keyup', filterTable);
+
+        // Xem chi tiết (gọi API)
+        let currentOrderId = null;
+
+        function xemChiTiet(maDonHang) {
+            currentOrderId = maDonHang;
+            fetch('/donhang/api/' + maDonHang)
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById('d_maDonHang').innerText = d.maDonHang || '-';
+                    document.getElementById('d_soDonHang').innerText = d.soDonHang || d.maDonHang;
+                    document.getElementById('d_maKH').innerText = d.maKH || '-';
+                    document.getElementById('d_maNV').innerText = d.maNV || '-';
+                    document.getElementById('d_maPGG').innerText = d.maPGG || 'Không có';
+                    document.getElementById('d_thoiGianDat').innerText = d.thoiGianDat ? formatDate(d.thoiGianDat) : '-';
+                    document.getElementById('d_thoiGianHetHan').innerText = d.thoiGianHetHan ? formatDate(d.thoiGianHetHan) : '-';
+                    document.getElementById('d_trangThai').innerText = d.trangThaiDonHang || '-';
+                    document.getElementById('d_tongTienSub').innerText = 'Gốc: ' + formatMoney(d.tongTien);
+                    document.getElementById('d_thanhTien').innerText = formatMoney(d.thanhTien);
+
+                    const btnHuy = document.getElementById('btnHuyTrongModal');
+                    btnHuy.disabled = (d.trangThaiDonHang === 'Đã hủy');
+
+                    document.getElementById('detailModal').classList.add('open');
+                })
+                .catch(() => showAlert('Không thể tải chi tiết đơn hàng!', 'error'));
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('open');
+            currentOrderId = null;
+        }
+
+        // Hủy đơn từ modal
+        function huyDonTuModal() {
+            if (currentOrderId) huyDon(currentOrderId, true);
+        }
+
+        // Hủy đơn
+        function huyDon(maDonHang, fromModal = false) {
+            if (!confirm('Bạn có chắc muốn hủy đơn hàng ' + maDonHang + '?')) return;
+            fetch('/donhang/huy/' + maDonHang, { method: 'POST' })
+                .then(r => r.json())
+                .then(() => {
+                    showAlert('Đã hủy đơn hàng ' + maDonHang + ' thành công!', 'warning');
+                    if (fromModal) closeModal();
+                    setTimeout(() => location.reload(), 1500);
+                })
+                .catch(() => showAlert('Không thể hủy đơn hàng!', 'error'));
+        }
+
+        function formatMoney(val) {
+            if (val == null) return '-';
+            return Number(val).toLocaleString('vi-VN') + ' ₫';
+        }
+
+        function formatDate(str) {
+            if (!str) return '-';
+            const d = new Date(str);
+            return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showAlert(msg, type) {
+            const box = document.getElementById('alertMessage');
+            box.className = 'alert-box alert-' + (type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'error');
+            box.style.display = 'block';
+            const icon = type === 'success' ? 'circle-check' : type === 'warning' ? 'triangle-exclamation' : 'circle-xmark';
+            box.innerHTML = `<i class="fa-solid fa-${icon}" style="margin-right:8px;"></i>${msg}`;
+            setTimeout(() => { box.style.display = 'none'; }, 3000);
+        }
+
+        // Đóng modal khi click ngoài
+        document.getElementById('detailModal').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</div>
+</body>
+
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Vé - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/QLV.css}">
+    </th:block>
+</head>
+
+<body>
+<div layout:fragment="content" class="admin-page">
+<!-- ===================== MAIN CONTENT ===================== -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="main-header">
+                <h2><i class="fa-solid fa-ticket-simple" style="margin-right:10px;color:#3b82f6;"></i>Quản Lý Vé</h2>
+                <div class="header-right">
+                    <i class="fa-solid fa-bell" title="Thông báo"></i>
+                    <span>Hôm nay: <b id="currentDate"></b></span>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Thống báo (Alert) -->
+                <div th:if="${thanhCong}" class="alert-box alert-success" style="display:block;">
+                    <i class="fa-solid fa-circle-check" style="margin-right:8px;"></i>
+                    <span th:text="${thanhCong}"></span>
+                </div>
+                <div th:if="${loi}" class="alert-box alert-error" style="display:block;">
+                    <i class="fa-solid fa-circle-xmark" style="margin-right:8px;"></i>
+                    <span th:text="${loi}"></span>
+                </div>
+                <div id="alertMessage" class="alert-box"></div>
+
+                <!-- Toolbar: Search & Filter -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Mã vé, QR, sự kiện, đơn hàng...">
+                        </div>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Chưa sử dụng">Chưa sử dụng</option>
+                            <option value="Đã sử dụng">Đã sử dụng</option>
+                            <option value="Đã hủy">Đã hủy</option>
+                        </select>
+                        <select id="eventFilter" class="filter-select" onchange="filterTable()">
+                            <option value="">Tất cả sự kiện</option>
+                            <option th:each="sk : ${dsSuKien}" th:value="${sk.MASK}" th:text="${sk.TENSK}"></option>
+                        </select>
+                        <button class="btn-filter" onclick="filterTable()">
+                            <i class="fa-solid fa-filter"></i> Lọc
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn-add" onclick="moModalThem()">
+                            <i class="fa-solid fa-plus"></i> Thêm Vé
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã Vé</th>
+                                    <th>Sự Kiện</th>
+                                    <th>Ghế</th>
+                                    <th>Đơn Hàng</th>
+                                    <th class="money-cell">Giá Vé</th>
+                                    <th style="text-align:center;">Trạng Thái</th>
+                                    <th style="text-align:center;">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ticketTableBody">
+                                <!-- Empty state -->
+                                <tr th:if="${veList == null or veList.isEmpty()}">
+                                    <td colspan="7" style="text-align:center;padding:30px;color:#93c5fd;">
+                                        <i class="fa-solid fa-ticket-simple"
+                                            style="font-size:28px;margin-bottom:8px;display:block;"></i>
+                                        Chưa có dữ liệu vé.
+                                    </td>
+                                </tr>
+                                <!-- Data rows -->
+                                <tr th:each="v : ${veList}" th:attr="data-ma=${v.maVe},data-mask=${v.maSK}"
+                                    onclick="xemChiTiet(this.getAttribute('data-ma'))">
+                                    <td><b th:text="${v.maVe}">VE-001</b></td>
+                                    <td>
+                                        <span th:text="${v.tenSuKien != null ? v.tenSuKien : (v.maSK != null ? v.maSK : '-')}">-</span>
+                                        <small class="sub-code" th:if="${v.maSK != null}" th:text="${v.maSK}">SK</small>
+                                    </td>
+                                    <td th:text="${v.tenGhe != null ? v.tenGhe : (v.maGhe != null ? v.maGhe : '-')}">-</td>
+                                    <td>
+                                        <span class="order-code" th:text="${v.soDonHang != null ? v.soDonHang : (v.maDonHang != null ? v.maDonHang : 'Chưa có đơn')}">DH</span>
+                                        <small class="sub-code" th:if="${v.maDonHang != null}" th:text="${v.maDonHang}">Mã đơn</small>
+                                        <small class="sub-code" th:if="${v.tenKhachHang != null}" th:text="${v.tenKhachHang}">Khách hàng</small>
+                                    </td>
+                                    <td class="money-cell">
+                                        <span class="money" th:if="${v.giaVe != null}" th:text="${#numbers.formatDecimal(v.giaVe, 0, 'POINT', 0, 'COMMA') + ' ₫'}">0 ₫</span>
+                                        <span th:unless="${v.giaVe != null}">-</span>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <span th:if="${v.trangThaiVe == 'Chưa sử dụng'}" class="badge badge-wait">Chưa sử dụng</span>
+                                        <span th:if="${v.trangThaiVe == 'Đã sử dụng'}" class="badge badge-paid">Đã sử dụng</span>
+                                        <span th:if="${v.trangThaiVe == 'Đã hủy'}" class="badge badge-cancel">Đã hủy</span>
+                                        <span th:if="${v.trangThaiVe != 'Chưa sử dụng' and v.trangThaiVe != 'Đã sử dụng' and v.trangThaiVe != 'Đã hủy'}"
+                                              class="badge badge-wait" th:text="${v.trangThaiVe}">?</span>
+                                    </td>
+                                    <td style="text-align:center;" onclick="event.stopPropagation()">
+                                        <button class="btn-action btn-edit"
+                                            th:attr="onclick='moModalSua(\'' + ${v.maVe} + '\')'"
+                                            title="Sửa vé">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <form th:if="${v.trangThaiVe == 'Chưa sử dụng'}"
+                                              th:action="@{/ve/{maVe}/gia-lap-su-dung(maVe=${v.maVe})}"
+                                              method="post"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Bạn muốn giả lập vé này đã được sử dụng?');">
+                                            <button type="submit" class="btn-action btn-use" title="Giả lập dùng vé">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                            </button>
+                                        </form>
+                                        <button class="btn-action btn-delete"
+                                            th:disabled="${v.trangThaiVe == 'Đã hủy'}"
+                                            th:attr="onclick='huyVe(\'' + ${v.maVe} + '\')'" title="Hủy vé">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar">
+                        <span>Hiển thị <b th:text="${veList != null ? veList.size() : 0}">0</b> vé</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    <!-- ===================== MODAL THÊM / SỬA / CHI TIẾT ===================== -->
+    <div id="ticketModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fa-solid fa-ticket-simple" style="margin-right:8px;color:#3b82f6;"></i>Thêm Vé Mới</h3>
+                <button class="btn-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="ticketForm" method="post" action="/ve/tao-moi">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Sự Kiện <span style="color:red">*</span></label>
+                            <select id="m_maSK" name="maSK" class="form-control" required onchange="onEventChange()">
+                                <option value="">-- Chọn sự kiện --</option>
+                                <option th:each="sk : ${dsSuKien}" th:value="${sk.MASK}" th:text="${sk.TENSK}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Khu Vực <span style="color:red">*</span></label>
+                            <select id="m_maKhuVuc" name="maKhuVuc" class="form-control" required onchange="onZoneChange()">
+                                <option value="">-- Chọn khu vực --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ghế <span style="color:red">*</span></label>
+                            <select id="m_maGhe" name="maGhe" class="form-control" required>
+                                <option value="">-- Chọn ghế --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Giá Vé</label>
+                            <input type="number" id="m_giaVe" name="giaVe" step="1000" placeholder="0" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Trạng Thái</label>
+                            <select id="m_trangThaiVe" name="trangThaiVe" class="form-control">
+                                <option value="Chưa sử dụng">Chưa sử dụng</option>
+                                <option value="Đã sử dụng">Đã sử dụng</option>
+                                <option value="Đã hủy">Đã hủy</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mã Đơn Hàng</label>
+                            <input type="text" id="m_maDonHang" name="maDonHang" placeholder="Ví dụ: DH001" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Mã Vé (Tùy chọn)</label>
+                            <input type="text" id="m_maVe" name="maVe" placeholder="Để trống để tự sinh" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Thời Gian Sử Dụng</label>
+                            <input type="datetime-local" id="m_thoiGianSuDung" name="thoiGianSuDung" class="form-control" readonly placeholder="Chưa sử dụng">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1; display:none;">
+                             <input type="hidden" id="m_maQR" name="maQR">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-close-modal" onclick="closeModal()">Đóng</button>
+                    <button type="submit" class="btn-save" id="btnSave">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================== JAVASCRIPT ===================== -->
+    <script th:inline="javascript">
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
+
+        setTimeout(() => {
+            document.querySelectorAll('.alert-success, .alert-error').forEach(el => el.style.display = 'none');
+        }, 3000);
+
+        function filterTable() {
+            const kw = document.getElementById('searchInput').value.toLowerCase();
+            const st = document.getElementById('statusFilter').value;
+            const sk = document.getElementById('eventFilter').value;
+            const rows = document.querySelectorAll('#ticketTableBody tr[data-ma]');
+            let visible = 0;
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const badge = row.querySelector('.badge');
+                const matchKw = kw === '' || text.includes(kw);
+                const matchSt = st === '' || (badge && badge.textContent.trim() === st);
+                
+                // For event filter, we might need to check a hidden data attribute or the text content
+                // Since maSK is not explicitly in a data attribute per row yet, let's assume it's in the text or add it
+                const rowMaSK = row.getAttribute('data-mask') || '';
+                const matchSk = sk === '' || rowMaSK === sk;
+
+                row.style.display = (matchKw && matchSt && matchSk) ? '' : 'none';
+                if (matchKw && matchSt && matchSk) visible++;
+            });
+            document.querySelector('.pagination-bar b').innerText = visible;
+        }
+
+        document.getElementById('searchInput').addEventListener('keyup', filterTable);
+
+        const modal = document.getElementById('ticketModal');
+        const form = document.getElementById('ticketForm');
+
+        function formatForDateTimeLocal(value) {
+            if (!value) return '';
+            let s = String(value).trim();
+
+            // Oracle/Hibernate có thể trả về: yyyy-MM-dd HH:mm:ss.0
+            if (s.includes('.')) {
+                s = s.split('.')[0];
+            }
+
+            if (s.endsWith('Z')) {
+                s = s.substring(0, s.length - 1);
+            }
+
+            s = s.replace(' ', 'T');
+
+            if (s.length >= 16) {
+                return s.substring(0, 16);
+            }
+
+            return '';
+        }
+
+        function moModalThem() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-ticket-simple" style="margin-right:8px;color:#3b82f6;"></i>Thêm Vé Mới';
+            form.action = '/ve/tao-moi';
+            form.reset();
+            document.getElementById('m_maVe').value = '';
+            document.getElementById('m_maQR').value = '';
+            const usedAtInput = document.getElementById('m_thoiGianSuDung');
+            if (usedAtInput) usedAtInput.value = '';
+            document.getElementById('m_maKhuVuc').innerHTML = '<option value="">-- Chọn khu vực --</option>';
+            document.getElementById('m_maGhe').innerHTML = '<option value="">-- Chọn ghế --</option>';
+            modal.classList.add('open');
+        }
+
+        function moModalSua(maVe) {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen" style="margin-right:8px;color:#eab308;"></i>Cập Nhật Vé';
+            form.action = '/ve/cap-nhat/' + maVe;
+            form.reset();
+            const initialUsedAtInput = document.getElementById('m_thoiGianSuDung');
+            if (initialUsedAtInput) initialUsedAtInput.value = '';
+
+            fetch('/ve/api/' + maVe)
+                .then(r => {
+                    if (!r.ok) throw new Error('Không thể tải dữ liệu vé');
+                    return r.json();
+                })
+                .then(d => {
+                    document.getElementById('m_maVe').value = d.maVe || '';
+                    document.getElementById('m_maQR').value = d.maQR || '';
+                    document.getElementById('m_giaVe').value = d.giaVe || '';
+                    document.getElementById('m_trangThaiVe').value = d.trangThaiVe || 'Chưa sử dụng';
+                    document.getElementById('m_maSK').value = d.maSK || '';
+                    document.getElementById('m_maDonHang').value = d.maDonHang || '';
+
+                    const usedAtInput = document.getElementById('m_thoiGianSuDung');
+                    if (usedAtInput) {
+                        usedAtInput.value = formatForDateTimeLocal(d.thoiGianSuDung);
+                    }
+
+                    const zoneSelect = document.getElementById('m_maKhuVuc');
+                    const seatSelect = document.getElementById('m_maGhe');
+                    const currentZone = d.maKhuVuc || '';
+                    const currentSeat = d.maGhe || '';
+
+                    loadZonesForEvent(d.maSK || '')
+                        .then(() => {
+                            setSelectValueWithFallback(zoneSelect, currentZone, currentZone ? currentZone + ' (khu vực hiện tại)' : '');
+                            if (!currentZone) return Promise.resolve();
+                            return loadSeatsForZone(currentZone);
+                        })
+                        .then(() => {
+                            setSelectValueWithFallback(seatSelect, currentSeat, d.tenGhe || (currentSeat ? currentSeat + ' (ghế hiện tại)' : ''));
+                            modal.classList.add('open');
+                        })
+                        .catch(err => {
+                            console.error('Không thể tải khu vực/ghế:', err);
+                            setSelectValueWithFallback(zoneSelect, currentZone, currentZone ? currentZone + ' (khu vực hiện tại)' : '');
+                            setSelectValueWithFallback(seatSelect, currentSeat, d.tenGhe || (currentSeat ? currentSeat + ' (ghế hiện tại)' : ''));
+                            modal.classList.add('open');
+                        });
+                })
+                .catch(() => alert('Không thể tải dữ liệu vé!'));
+        }
+
+        function xemChiTiet(maVe) {
+            // Có thể dùng modal sửa với các input disabled để xem chi tiết
+            moModalSua(maVe);
+        }
+
+        function closeModal() {
+            modal.classList.remove('open');
+        }
+
+        function huyVe(maVe) {
+            if (!confirm('Bạn có chắc muốn hủy vé ' + maVe + '?')) return;
+            fetch('/ve/xoa/' + maVe, { method: 'POST' })
+                .then(() => location.reload())
+                .catch(() => alert('Không thể hủy vé!'));
+        }
+
+        // Đóng modal khi click ngoài
+        // --- DYNAMIC SELECTION LOGIC ---
+        function onEventChange() {
+            const maSK = document.getElementById('m_maSK').value;
+            loadZonesForEvent(maSK);
+        }
+
+        function onZoneChange() {
+            const maKV = document.getElementById('m_maKhuVuc').value;
+            loadSeatsForZone(maKV);
+        }
+
+        function loadZonesForEvent(maSK) {
+            const zoneSelect = document.getElementById('m_maKhuVuc');
+            const seatSelect = document.getElementById('m_maGhe');
+            
+            zoneSelect.innerHTML = '<option value="">-- Chọn khu vực --</option>';
+            seatSelect.innerHTML = '<option value="">-- Chọn ghế --</option>';
+            
+            if (!maSK) return Promise.resolve([]);
+            
+            return fetch('/ve/api/khu-vuc/' + maSK)
+                .then(r => {
+                    if (!r.ok) throw new Error('Không thể tải khu vực');
+                    return r.json();
+                })
+                .then(data => {
+                    const zones = Array.isArray(data) ? data : [];
+                    zones.forEach(z => {
+                        const opt = document.createElement('option');
+                        opt.value = z.MAKHUVUC;
+                        opt.textContent = z.TENKHUVUC;
+                        zoneSelect.appendChild(opt);
+                    });
+                    return zones;
+                });
+        }
+
+        function loadSeatsForZone(maKV) {
+            const seatSelect = document.getElementById('m_maGhe');
+            
+            seatSelect.innerHTML = '<option value="">-- Chọn ghế --</option>';
+            
+            if (!maKV) return Promise.resolve([]);
+            
+            return fetch('/ve/api/ghe/' + maKV)
+                .then(r => {
+                    if (!r.ok) throw new Error('Không thể tải ghế');
+                    return r.json();
+                })
+                .then(data => {
+                    const seats = Array.isArray(data) ? data : [];
+                    seats.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.MAGHE;
+                        opt.textContent = s.TENGHE;
+                        seatSelect.appendChild(opt);
+                    });
+                    return seats;
+                });
+        }
+
+        function setSelectValueWithFallback(select, value, label) {
+            if (!select || !value) return;
+            const exists = Array.from(select.options).some(opt => opt.value === value);
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = label || value;
+                select.appendChild(opt);
+            }
+            select.value = value;
+        }
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+    </script>
+</div>
+</body>
+
+</html>

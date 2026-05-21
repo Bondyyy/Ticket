@@ -1,0 +1,13 @@
+CREATE OR REPLACE FUNCTION fn_LayTrangThaiGhe (
+    p_MaGhe IN VARCHAR2
+) RETURN VARCHAR2 IS
+    v_TrangThai VARCHAR2(50);
+BEGIN
+    SELECT TrangThaiGhe INTO v_TrangThai
+    FROM GHENGOI
+    WHERE MaGhe = p_MaGhe;
+    RETURN v_TrangThai;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN RETURN NULL;
+END fn_LayTrangThaiGhe;
+/

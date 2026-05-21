@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Sự kiện - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/landing.css}">
+        <style>
+            .events-page { padding: 10px 0 48px; }
+            .events-toolbar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                align-items: center;
+                justify-content: space-between;
+                margin: 22px 0 28px;
+                padding: 16px;
+                border: 1px solid var(--border);
+                border-radius: 18px;
+                background: #ffffff;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+            }
+            .events-toolbar form { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+            .events-toolbar input,
+            .events-toolbar select {
+                min-height: var(--control-height);
+                height: var(--control-height);
+                border: 1px solid var(--control-border);
+                border-radius: var(--control-radius);
+                padding: 0 14px;
+            }
+            .events-toolbar input { flex: 1 1 260px; }
+            .events-toolbar select {
+                flex: 0 1 210px;
+                padding-right: 38px;
+            }
+            .events-toolbar button {
+                min-height: var(--control-height);
+                height: var(--control-height);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                border: none;
+                border-radius: var(--control-radius);
+                padding: 0 18px;
+                color: #ffffff;
+                background: var(--primary);
+                font-weight: 800;
+                line-height: 1;
+                white-space: nowrap;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+<main layout:fragment="content" class="events-page">
+    <section class="section-heading section-heading-row">
+        <div>
+            <span class="eyebrow">Sự kiện</span>
+            <h2>Danh sách sự kiện</h2>
+            <p>Chọn sự kiện để xem thông tin, giá vé và trạng thái mở bán.</p>
+        </div>
+    </section>
+
+    <div class="events-toolbar">
+        <form th:action="@{/su-kien}" method="get">
+            <input type="text" name="keyword" placeholder="Tìm tên sự kiện, tag, mô tả..." th:value="${keyword}">
+            <select name="trangThai">
+                <option value="">Tất cả trạng thái</option>
+                <option value="Chưa mở bán" th:selected="${trangThaiFilter == 'Chưa mở bán'}">Chưa mở bán</option>
+                <option value="Đang mở bán" th:selected="${trangThaiFilter == 'Đang mở bán'}">Đang mở bán</option>
+                <option value="Đã kết thúc" th:selected="${trangThaiFilter == 'Đã kết thúc'}">Đã kết thúc</option>
+                <option value="Đã hủy" th:selected="${trangThaiFilter == 'Đã hủy'}">Đã hủy</option>
+                <option value="Tạm ngưng" th:selected="${trangThaiFilter == 'Tạm ngưng'}">Tạm ngưng</option>
+            </select>
+            <button type="submit"><i class="bi bi-search me-1"></i>Lọc</button>
+        </form>
+    </div>
+
+    <div class="event-grid" th:if="${suKienList != null and !suKienList.isEmpty()}">
+        <article th:each="sk : ${suKienList}" class="event-card ui-hover-card">
+            <a th:href="@{/su-kien/{id}(id=${sk.maSK})}" class="event-media">
+                <img th:if="${sk.hinhAnhThumb != null and !sk.hinhAnhThumb.isEmpty()}"
+                     th:src="${sk.hinhAnhThumb}"
+                     th:alt="${sk.tenSK}"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img th:if="${(sk.hinhAnhThumb == null or sk.hinhAnhThumb.isEmpty()) and sk.hinhAnh != null and !sk.hinhAnh.isEmpty()}"
+                     th:src="${sk.hinhAnh}"
+                     th:alt="${sk.tenSK}"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="event-fallback">
+                    <i class="bi bi-calendar-event"></i>
+                    <span th:text="${sk.maSK}">SK</span>
+                </div>
+            </a>
+            <div class="event-body">
+                <div class="event-topline">
+                    <span class="status-badge"
+                          th:classappend="${sk.trangThaiSK == 'Đang mở bán' ? ' is-open' : (sk.trangThaiSK == 'Chưa mở bán' ? ' is-soon' : ' is-muted')}"
+                          th:text="${sk.trangThaiSK != null ? sk.trangThaiSK : 'Đang cập nhật'}">Đang mở bán</span>
+                    <span th:if="${sk.tags != null and !sk.tags.isEmpty()}" class="tag-pill" th:text="${sk.tags}">Music</span>
+                </div>
+                <h3 th:text="${sk.tenSK}">Tên sự kiện</h3>
+                <div class="event-meta">
+                    <i class="bi bi-clock"></i>
+                    <span th:text="${sk.thoiGianBatDau != null ? #dates.format(sk.thoiGianBatDau, 'HH:mm - dd/MM/yyyy') : 'Đang cập nhật'}">19:00 - 01/01/2026</span>
+                </div>
+                <div class="event-meta">
+                    <i class="bi bi-geo-alt"></i>
+                    <span th:text="${sk.maDiaDiem != null ? sk.maDiaDiem : 'Đang cập nhật địa điểm'}">Địa điểm</span>
+                </div>
+                <a th:href="@{/su-kien/{id}(id=${sk.maSK})}" class="event-cta">
+                    Xem chi tiết
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </article>
+    </div>
+
+    <div class="empty-events ui-hover-card" th:if="${suKienList == null or suKienList.isEmpty()}">
+        <div class="empty-icon"><i class="bi bi-calendar-x"></i></div>
+        <h3>Không tìm thấy sự kiện phù hợp</h3>
+        <p>Thử bỏ bộ lọc hoặc quay lại sau khi ban tổ chức mở thêm sự kiện.</p>
+    </div>
+</main>
+</body>
+</html>

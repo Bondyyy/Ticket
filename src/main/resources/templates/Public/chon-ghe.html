@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Chọn ghế - Dề Dê Tickets</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <th:block layout:fragment="page-css">
+        <style>
+            .booking-page { background: #f8fafc; }
+            .booking-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: flex; gap: 30px; }
+            .main-col { flex: 1; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--dd-border); }
+            .side-col { width: 350px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--dd-border); display: flex; flex-direction: column; height: fit-content; position: sticky; top: 90px; }
+            
+            .stage-box { background: #334155; color: white; text-align: center; padding: 15px; border-radius: 8px; font-weight: bold; letter-spacing: 5px; margin-bottom: 30px; }
+            .booking-page .seat-map { align-items: stretch; }
+            .booking-page .seat-area { margin-bottom: 18px; }
+            .booking-page .seat-area:last-child { margin-bottom: 0; }
+            
+            .legend { display: flex; gap: 15px; justify-content: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; flex-wrap: wrap; }
+            .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; }
+            .legend-box { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
+            
+            .summary-title { font-size: 20px; color: #1e3a8a; margin: 0 0 20px; font-family: "Be Vietnam Pro", "Inter", sans-serif; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;}
+            .selected-seats-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; min-height: 50px; }
+            .selected-seat-tag { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; }
+            
+            .total-box { margin-top: auto; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+            .total-price { font-size: 24px; color: #ef4444; font-weight: bold; text-align: right; margin-bottom: 20px; }
+            .btn-continue { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+            .btn-continue:hover { background: #1d4ed8; }
+            .btn-continue:disabled { background: #94a3b8; cursor: not-allowed; }
+            @media (max-width: 992px) {
+                .booking-container { flex-direction: column; }
+                .side-col { width: 100%; position: static; }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <main layout:fragment="content" class="booking-page">
+        <div class="booking-container">
+            <!-- Cột trái: Sơ đồ ghế -->
+            <div class="main-col animate__animated animate__fadeIn">
+                <h2 style="margin-top:0; color: #1e3a8a; font-family: 'Be Vietnam Pro', 'Inter', sans-serif;" th:text="${suKien.tenSK}">Tên sự kiện</h2>
+                <p style="color: #64748b; margin-bottom: 30px;"><i class="fa-solid fa-location-dot me-1"></i> <span th:text="${suKien.maDiaDiem}">Địa điểm</span></p>
+                
+                <div class="stage-box">SÂN KHẤU</div>
+                
+                <div class="seat-map" id="seatMapContainer">
+                    <!-- Javascript sẽ render ghế ở đây dựa trên dữ liệu -->
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-box seat-cell selected" style="width:18px;height:18px;min-width:18px;"></div> Đang chọn
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box seat-cell holding" style="width:18px;height:18px;min-width:18px;"></div> Giữ tạm
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box seat-cell sold" style="width:18px;height:18px;min-width:18px;"></div> Đã bán
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box seat-cell maintenance" style="width:18px;height:18px;min-width:18px;"></div> Bảo trì
+                    </div>
+                    <div th:each="area : ${seatMap.areas}" class="legend-item">
+                        <div class="legend-box" th:style="'background:' + ${area.mauSacHienThi}"></div>
+                        <span th:text="${area.tenKhuVuc}">VIP</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cột phải: Thông tin đơn hàng -->
+            <div class="side-col animate__animated animate__fadeIn">
+                <h3 class="summary-title">Thông tin đặt vé</h3>
+                
+                <div style="margin-bottom: 15px;">
+                    <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Ghế đã chọn:</div>
+                    <div class="selected-seats-list" id="selectedSeatsList">
+                        <span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn ghế nào</span>
+                    </div>
+                </div>
+                
+                <div class="total-box">
+                    <div style="font-size: 14px; color: #64748b; text-align: right;">Tổng tiền</div>
+                    <div class="total-price" id="totalPrice">0 ₫</div>
+                    <button class="btn-continue" id="btnContinue" disabled onclick="lockSeatsAndCheckout()">TIẾP TỤC THANH TOÁN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Truyền dữ liệu sang Javascript -->
+        <script th:inline="javascript">
+            const seatMap = /*[[${seatMap}]]*/ { areas: [] };
+            const maSK = /*[[${suKien.maSK}]]*/ '';
+            const queueToken = /*[[${queueToken}]]*/ '';
+            
+            const areaMap = {};
+            (seatMap.areas || []).forEach(area => areaMap[area.maKhuVuc] = area);
+            
+            let selectedSeats = [];
+
+            function formatMoney(value) {
+                return new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' ₫';
+            }
+
+            function seatStateClass(status) {
+                if (status === 'Trống') return 'empty available';
+                if (status === 'Đang chọn') return 'holding';
+                if (status === 'Bảo trì') return 'maintenance';
+                return 'sold';
+            }
+            
+            function renderSeats() {
+                const container = document.getElementById('seatMapContainer');
+                container.innerHTML = '';
+
+                const areas = Array.isArray(seatMap.areas) ? seatMap.areas : [];
+                if (areas.length === 0) {
+                    container.innerHTML = '<p style="color:#94a3b8;text-align:center;margin:24px 0;">Sự kiện này chưa có sơ đồ ghế.</p>';
+                    return;
+                }
+
+                areas.forEach(area => {
+                    const areaEl = document.createElement('section');
+                    areaEl.className = 'seat-area';
+
+                    const header = document.createElement('div');
+                    header.className = 'seat-area-header';
+                    header.innerHTML = `
+                        <div>
+                            <strong>${area.tenKhuVuc || 'Khu vực'}</strong>
+                            <span>${formatMoney(area.giaVe)}</span>
+                        </div>
+                        <small>Tối đa ${area.soVeToiDaPerKH || 4} vé/khách</small>
+                    `;
+                    areaEl.appendChild(header);
+
+                    (area.rows || []).forEach(row => {
+                        const rowDiv = document.createElement('div');
+                        rowDiv.className = 'seat-row';
+
+                        const label = document.createElement('div');
+                        label.className = 'seat-row-label';
+                        label.textContent = row.hangGhe || '';
+                        rowDiv.appendChild(label);
+
+                        const seatsWrap = document.createElement('div');
+                        seatsWrap.className = 'seat-row-seats';
+
+                        (row.seats || []).forEach(s => {
+                        const seatDiv = document.createElement('div');
+                        seatDiv.className = 'seat-cell ' + seatStateClass(s.trangThaiGhe);
+                        seatDiv.textContent = s.tenGhe;
+                        seatDiv.title = `${s.tenGhe} - ${area.tenKhuVuc} - ${formatMoney(area.giaVe)} - ${s.trangThaiGhe}`;
+
+                        if (s.trangThaiGhe === 'Trống') {
+                            seatDiv.style.backgroundColor = area.mauSacHienThi || '#3b82f6';
+                            seatDiv.onclick = () => toggleSeat(s, seatDiv, Number(area.giaVe || 0));
+                        }
+
+                            seatsWrap.appendChild(seatDiv);
+                        });
+
+                        rowDiv.appendChild(seatsWrap);
+                        areaEl.appendChild(rowDiv);
+                    });
+
+                    container.appendChild(areaEl);
+                });
+            }
+            
+            function toggleSeat(seatObj, el, price) {
+                const idx = selectedSeats.findIndex(s => s.id === seatObj.maGhe);
+                const area = areaMap[seatObj.maKhuVuc];
+                if (idx > -1) {
+                    // Deselect
+                    selectedSeats.splice(idx, 1);
+                    el.classList.remove('selected');
+                } else {
+                    // Select
+                    const currentZoneSelected = selectedSeats.filter(s => s.maKhuVuc === seatObj.maKhuVuc).length;
+                    const maxVe = (area && area.soVeToiDaPerKH != null && area.soVeToiDaPerKH > 0) ? area.soVeToiDaPerKH : 4;
+                    
+                    if (currentZoneSelected >= maxVe) {
+                        alert(`Khu vực ${area ? area.tenKhuVuc : ''} chỉ cho phép chọn tối đa ${maxVe} ghế!`);
+                        return;
+                    }
+                    
+                    if (selectedSeats.length >= 10) {
+                        alert("Chỉ được chọn tối đa 10 ghế trong một đơn hàng!");
+                        return;
+                    }
+                    
+                    selectedSeats.push({
+                        id: seatObj.maGhe,
+                        name: seatObj.tenGhe,
+                        price: price,
+                        maKhuVuc: seatObj.maKhuVuc
+                    });
+                    el.classList.add('selected');
+                }
+                updateSummary();
+            }
+            
+            function updateSummary() {
+                const listEl = document.getElementById('selectedSeatsList');
+                const totalEl = document.getElementById('totalPrice');
+                const btn = document.getElementById('btnContinue');
+                
+                if (selectedSeats.length === 0) {
+                    listEl.innerHTML = '<span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn ghế nào</span>';
+                    totalEl.textContent = '0 ₫';
+                    btn.disabled = true;
+                    return;
+                }
+                
+                listEl.innerHTML = '';
+                let total = 0;
+                selectedSeats.forEach(s => {
+                    const tag = document.createElement('div');
+                    tag.className = 'selected-seat-tag';
+                    tag.textContent = s.name;
+                    listEl.appendChild(tag);
+                    total += s.price;
+                });
+                
+                totalEl.textContent = formatMoney(total);
+                btn.disabled = false;
+            }
+            
+            function lockSeatsAndCheckout() {
+                if (selectedSeats.length === 0) return;
+                
+                const btn = document.getElementById('btnContinue');
+                btn.disabled = true;
+                btn.textContent = 'ĐANG GIỮ CHỖ...';
+                
+                const payload = {
+                    maGheList: selectedSeats.map(s => s.id),
+                    maSK: maSK,
+                    queueToken: queueToken
+                };
+                
+                fetch('/api/booking/lock-seats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => {
+                    if (r.status === 403) {
+                        return r.json().then(d => {
+                            alert(d.message || "Bạn cần vào hàng đợi trước khi đặt vé.");
+                            window.location.href = `/hang-doi/${maSK}`;
+                            throw new Error("403 Forbidden");
+                        });
+                    }
+                    return r.json();
+                })
+                .then(d => {
+                    if (d.success === false) {
+                        alert(d.message);
+                        if (d.redirect) {
+                            window.location.href = d.redirect;
+                        } else if (d.message && d.message.includes("hàng đợi")) {
+                            window.location.href = `/hang-doi/${maSK}`;
+                        } else {
+                            location.reload();
+                        }
+                    } else if (d.error) {
+                        alert(d.error);
+                        if (d.redirect) {
+                            window.location.href = d.redirect;
+                        } else {
+                            location.reload();
+                        }
+                    } else {
+                        window.location.href = d.redirect;
+                    }
+                })
+                .catch(e => {
+                    if (e.message !== "403 Forbidden") {
+                        alert("Lỗi kết nối tới server hoặc thao tác quá nhanh.");
+                        btn.disabled = false;
+                        btn.textContent = 'TIẾP TỤC THANH TOÁN';
+                    }
+                });
+            }
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                renderSeats();
+            });
+        </script>
+    </main>
+</body>
+</html>

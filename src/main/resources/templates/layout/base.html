@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title layout:title-pattern="$CONTENT_TITLE - Dề Dê Tickets">Dề Dê Tickets</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome (used by legacy templates) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Be Vietnam Pro -->
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- CSS toàn cục -->
+    <link th:href="@{/css/main.css}" rel="stylesheet">
+
+    <!-- CSS riêng từng trang (nếu có) -->
+    <th:block layout:fragment="page-css"></th:block>
+</head>
+<body>
+
+    <!-- Navbar (ẩn trên trang login/register) -->
+    <nav th:if="${showNavbar != false}" class="navbar navbar-expand-xl dd-navbar">
+        <div class="page-container nav-container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="bi bi-ticket-perforated-fill me-2"></i>Dề Dê Tickets
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navMain">
+                <ul class="navbar-nav me-auto">
+                    <!-- Public Links -->
+                    <th:block th:if="${session.nguoiDung == null}">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/}" data-nav-path="/">
+                                <i class="bi bi-house-door"></i>Trang chủ
+                            </a>
+                        </li>
+                    </th:block>
+
+                    <!-- CUSTOMER Links -->
+                    <th:block th:if="${session.nguoiDung != null and (session.roles != null and #lists.contains(session.roles, 'CUSTOMER'))}">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/}" data-nav-path="/">
+                                <i class="bi bi-house-door"></i>Trang chủ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/su-kien}" data-nav-path="/su-kien">
+                                <i class="bi bi-calendar3"></i>Sự kiện
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/ve-cua-toi}" data-nav-path="/ve-cua-toi">
+                                <i class="bi bi-ticket-perforated"></i>Vé của tôi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/don-hang-cua-toi}" data-nav-path="/don-hang-cua-toi">
+                                <i class="bi bi-receipt"></i>Đơn hàng của tôi
+                            </a>
+                        </li>
+                    </th:block>
+                    
+                    <!-- ADMIN hoặc ORGANIZER Links -->
+                    <th:block th:if="${session.nguoiDung != null and (session.roles != null and (#lists.contains(session.roles, 'ADMIN') or #lists.contains(session.roles, 'ORGANIZER')))}">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/sukien}" data-nav-path="/sukien">
+                                <i class="bi bi-calendar-event"></i>Quản lý sự kiện
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/donhang}" data-nav-path="/donhang">
+                                <i class="bi bi-receipt"></i>Đơn hàng
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/ve}" data-nav-path="/ve">
+                                <i class="bi bi-ticket"></i>Vé
+                            </a>
+                        </li>
+                        <li class="nav-item" th:if="${#lists.contains(session.roles, 'ADMIN')}">
+                            <a class="nav-link" th:href="@{/taikhoan}" data-nav-path="/taikhoan">
+                                <i class="bi bi-person-workspace"></i>Tài khoản
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/baocao}" data-nav-path="/baocao">
+                                <i class="bi bi-graph-up"></i>Báo cáo
+                            </a>
+                        </li>
+                    </th:block>
+                    
+                    <!-- STAFF hoặc ADMIN Links -->
+                    <th:block th:if="${session.nguoiDung != null and (session.roles != null and (#lists.contains(session.roles, 'STAFF') or #lists.contains(session.roles, 'ADMIN')))}">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/soat-ve}" data-nav-path="/soat-ve">
+                                <i class="bi bi-qr-code-scan"></i>Soát vé
+                            </a>
+                        </li>
+                    </th:block>
+                </ul>
+                <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <!-- Chưa đăng nhập -->
+                    <li class="nav-item d-flex gap-2" th:if="${session.nguoiDung == null}">
+                        <a class="btn nav-auth-btn nav-login-btn btn-login" th:href="@{/dang-nhap}">Đăng nhập</a>
+                        <a class="btn nav-auth-btn nav-register-btn btn-register" th:href="@{/dang-ky}">Đăng ký</a>
+                    </li>
+                    <!-- Đã đăng nhập -->
+                    <li class="nav-item dropdown" th:if="${session.nguoiDung != null}">
+                        <button class="nav-link dropdown-toggle d-flex align-items-center gap-2 bg-transparent border-0 dd-user-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="dd-avatar">
+                                <span th:text="${#strings.substring(session.nguoiDung.tenTaiKhoan, 0, 1).toUpperCase()}">U</span>
+                            </div>
+                            <span class="dd-user-name" th:text="${session.nguoiDung.tenTaiKhoan}">Người dùng</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <!-- Vé của tôi (Chỉ hiện cho CUSTOMER) -->
+                            <li th:if="${session.roles != null and #lists.contains(session.roles, 'CUSTOMER')}">
+                                <a class="dropdown-item" th:href="@{/ve-cua-toi}"><i class="bi bi-ticket me-2"></i>Vé của tôi</a>
+                            </li>
+                            <!-- Đơn hàng của tôi (Chỉ hiện cho CUSTOMER) -->
+                            <li th:if="${session.roles != null and #lists.contains(session.roles, 'CUSTOMER')}">
+                                <a class="dropdown-item" th:href="@{/don-hang-cua-toi}"><i class="bi bi-receipt me-2"></i>Đơn hàng của tôi</a>
+                            </li>
+                            <!-- Tài khoản hệ thống (ADMIN/ORGANIZER) -->
+                            <li th:if="${session.roles != null and #lists.contains(session.roles, 'ADMIN')}">
+                                <a class="dropdown-item" th:href="@{/taikhoan}"><i class="bi bi-person me-2"></i>Tài khoản</a>
+                            </li>
+                            
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" th:href="@{/dang-xuat}">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Nội dung từng trang inject vào đây -->
+    <div class="app-shell">
+        <main class="page-container page-main">
+            <div class="page-content">
+                <th:block layout:fragment="content"></th:block>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer th:if="${showFooter != false}" class="dd-footer mt-auto">
+        <div class="page-container py-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <span class="fw-semibold"><i class="bi bi-ticket-perforated-fill me-1"></i>Dề Dê Tickets</span>
+                    <span class="text-muted ms-2" style="font-size: 13px;">© 2025 ITPJ2602 – Nhóm SPRING</span>
+                </div>
+                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                    <span class="text-muted" style="font-size: 13px;">Hệ thống Quản lý Sự kiện &amp; Bán vé trực tuyến</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.dd-navbar .nav-link[data-nav-path]').forEach(function (link) {
+                const target = link.getAttribute('data-nav-path');
+                if ((target === '/' && currentPath === '/') ||
+                    (target !== '/' && !target.includes('#') && (currentPath === target || currentPath.startsWith(target + '/')))) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+    <!-- JS riêng từng trang -->
+    <th:block layout:fragment="page-js"></th:block>
+</body>
+</html>

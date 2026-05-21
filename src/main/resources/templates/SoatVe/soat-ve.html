@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soát Vé Cổng - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link th:href="@{/css/pages/soat-ve.css}" rel="stylesheet">
+    </th:block>
+</head>
+<body>
+
+<div layout:fragment="content" class="page-container scan-page">
+    <section class="scan-header">
+        <div>
+            <h1>Hệ Thống Soát Vé Cổng</h1>
+            <p>Quét QR hoặc nhập mã vé thủ công để xác thực vé tại cổng.</p>
+        </div>
+        <div class="scan-header-actions">
+            <button id="btnManualSync" type="button" class="scan-btn scan-btn-outline" hidden>
+                <i class="bi bi-cloud-arrow-up"></i>
+                Đồng bộ ngay
+                <span id="syncPill" class="scan-count">0</span>
+            </button>
+            <span id="connectionStatus" class="scan-status-pill status-online">
+                <i class="bi bi-circle-fill"></i>
+                <span id="connectionLabel">ONLINE</span>
+            </span>
+        </div>
+    </section>
+
+    <div th:if="${errorMsg}" class="scan-alert scan-alert-danger">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span th:text="${errorMsg}">Lỗi cấu hình tài khoản nhân viên.</span>
+    </div>
+
+    <div id="offlineAlertBanner" class="scan-alert scan-alert-warning" hidden>
+        <i class="bi bi-wifi-off"></i>
+        Đang offline. Lượt soát vé sẽ được lưu cục bộ và đồng bộ lại khi có mạng.
+    </div>
+
+    <section class="scan-grid">
+        <div class="scan-column">
+            <article class="scan-card">
+                <div class="scan-card-header">
+                    <div>
+                        <span class="scan-card-kicker">Cấu hình</span>
+                        <h2><i class="bi bi-sliders"></i> Thiết lập cổng quét</h2>
+                    </div>
+                </div>
+
+                <form id="scanConfigForm" class="scan-form" onsubmit="return false;">
+                    <div class="scan-form-row">
+                        <div class="scan-field">
+                            <label for="maSK">Sự kiện</label>
+                            <select id="maSK" name="maSK" class="scan-control">
+                                <option th:each="sk : ${suKienList}"
+                                        th:value="${sk.maSK}"
+                                        th:text="${sk.maSK + ' - ' + sk.tenSK}">
+                                    SK001 - Sự kiện demo
+                                </option>
+                                <option th:if="${suKienList == null or suKienList.isEmpty()}" value="">
+                                    Không tìm thấy sự kiện nào
+                                </option>
+                            </select>
+                        </div>
+                        <div class="scan-field">
+                            <label for="congSoat">Cổng soát vé</label>
+                            <input id="congSoat" name="congSoat" class="scan-control" type="text" value="Cổng chính">
+                        </div>
+                    </div>
+                </form>
+            </article>
+
+            <article class="scan-card">
+                <div class="scan-card-header">
+                    <div>
+                        <span class="scan-card-kicker">Xác thực</span>
+                        <h2><i class="bi bi-shield-check"></i> Kết quả kiểm tra vé</h2>
+                    </div>
+                </div>
+
+                <div id="resultBanner" class="result-banner result-idle">
+                    <div id="resultIcon" class="result-icon">
+                        <i class="bi bi-qr-code-scan"></i>
+                    </div>
+                    <div id="resultTitle" class="result-title">SẴN SÀNG QUÉT</div>
+                    <p id="resultDesc" class="result-desc">
+                        Hướng camera vào mã QR, chọn ảnh QR hoặc nhập mã vé thủ công.
+                    </p>
+
+                    <div id="resultMeta" class="result-meta" hidden>
+                        <div class="result-meta-item">
+                            <span>Mã vé</span>
+                            <strong id="metaTicketCode">-</strong>
+                        </div>
+                        <div class="result-meta-item">
+                            <span>Ghế</span>
+                            <strong id="metaSeat">-</strong>
+                        </div>
+                        <div class="result-meta-item">
+                            <span>Khu vực</span>
+                            <strong id="metaZone">-</strong>
+                        </div>
+                        <div class="result-meta-item">
+                            <span>Người mua</span>
+                            <strong id="metaOwner">-</strong>
+                        </div>
+                        <div class="result-meta-item">
+                            <span>Response time</span>
+                            <strong><span id="responseTimeVal">0</span> ms</strong>
+                        </div>
+                        <div class="result-meta-item">
+                            <span>Thời gian quét</span>
+                            <strong id="metaScanTime">-</strong>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div class="scan-column">
+            <article class="scan-card">
+                <div class="scan-card-header scan-card-header-actions">
+                    <div>
+                        <span class="scan-card-kicker">QR scanner</span>
+                        <h2><i class="bi bi-camera"></i> Camera quét mã QR</h2>
+                    </div>
+                    <div class="camera-actions">
+                        <button type="button" id="btnStartCamera" class="scan-btn scan-btn-primary">
+                            <i class="bi bi-camera-video-fill"></i>
+                            <span>Mở Camera</span>
+                        </button>
+                        <button type="button" id="btnStopCamera" class="scan-btn scan-btn-outline" disabled>
+                            <i class="bi bi-camera-video-off"></i>
+                            <span>Đóng Camera</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="cameraAlert" class="scan-alert scan-alert-danger camera-alert" hidden></div>
+
+                <div id="qrReaderShell" class="qr-reader-shell">
+                    <div id="qrPlaceholder" class="qr-placeholder">
+                        <i class="bi bi-qr-code-scan"></i>
+                        <strong>Camera chưa mở</strong>
+                        <span>Camera hoạt động trên localhost hoặc HTTPS.</span>
+                    </div>
+                    <div id="qr-reader"></div>
+                </div>
+
+                <div class="scan-tools">
+                    <input type="file" id="qrImageInput" accept="image/*" hidden>
+                    <label for="qrImageInput" class="scan-btn scan-btn-outline scan-upload-label">
+                        <i class="bi bi-image"></i>
+                        Chọn ảnh QR
+                    </label>
+                    <span id="imageFileName" class="scan-file-name">Chưa chọn ảnh</span>
+                </div>
+
+                <form id="manualScanForm" class="manual-form">
+                    <label for="manualQrInput">Nhập QR / Mã vé thủ công</label>
+                    <div class="manual-input-row">
+                        <input id="manualQrInput"
+                               class="scan-control"
+                               type="text"
+                               autocomplete="off"
+                               placeholder="TICKET|maVe=...|maSK=...|maQR=... hoặc MaVe/MaQR"
+                               th:disabled="${maNV == null or suKienList == null or suKienList.isEmpty()}">
+                        <button id="btnManualSubmit"
+                                type="submit"
+                                class="scan-btn scan-btn-primary"
+                                th:disabled="${maNV == null or suKienList == null or suKienList.isEmpty()}">
+                            <i class="bi bi-check-circle"></i>
+                            Kiểm Tra
+                        </button>
+                    </div>
+                </form>
+            </article>
+        </div>
+    </section>
+
+    <section class="scan-card history-card">
+        <div class="scan-card-header scan-card-header-actions">
+            <div>
+                <span class="scan-card-kicker">Theo dõi</span>
+                <h2><i class="bi bi-clock-history"></i> Lịch sử quét gần nhất</h2>
+            </div>
+            <span id="staffIdTag" class="staff-tag" th:text="${maNV != null ? 'Nhân viên: ' + maNV : 'Chưa có mã nhân viên'}">
+                Nhân viên: NV0001
+            </span>
+        </div>
+
+        <div class="history-table-wrap">
+            <table class="history-table">
+                <thead>
+                <tr>
+                    <th>Thời gian</th>
+                    <th>Mã vé</th>
+                    <th>Kết quả</th>
+                    <th>Cổng soát</th>
+                    <th>Nguồn</th>
+                </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                <tr>
+                    <td colspan="5">
+                        <div class="history-empty">
+                            <i class="bi bi-inbox"></i>
+                            <strong>Chưa có lượt quét nào</strong>
+                            <span>Lịch sử 10 lượt gần nhất sẽ xuất hiện tại đây.</span>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<th:block layout:fragment="page-js">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <script th:inline="javascript">
+        const LOCAL_STORAGE_KEY = 'dede_tickets_pending_scans';
+        let html5QrCode = null;
+        let cameraRunning = false;
+        let selectedCameraId = null;
+        let lastDecodedText = '';
+        let lastDecodedAt = 0;
+        let validationInFlight = false;
+        let isSystemOnline = navigator.onLine;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const manualSubmit = document.getElementById('btnManualSubmit');
+            if (manualSubmit?.disabled) {
+                manualSubmit.setAttribute('data-server-disabled', 'true');
+            }
+
+            document.getElementById('btnStartCamera')?.addEventListener('click', startCameraScanner);
+            document.getElementById('btnStopCamera')?.addEventListener('click', stopCameraScanner);
+            document.getElementById('btnManualSync')?.addEventListener('click', checkAndSyncPendingOfflineScans);
+            document.getElementById('qrImageInput')?.addEventListener('change', event => {
+                const file = event.target.files && event.target.files[0];
+                scanQrFromImage(file);
+            });
+            document.getElementById('manualScanForm')?.addEventListener('submit', event => {
+                event.preventDefault();
+                const value = document.getElementById('manualQrInput').value.trim();
+                if (value) {
+                    onQrDecoded(value, 'manual');
+                }
+            });
+
+            window.addEventListener('online', () => {
+                isSystemOnline = true;
+                updateConnectionStatus();
+                checkAndSyncPendingOfflineScans();
+            });
+            window.addEventListener('offline', () => {
+                isSystemOnline = false;
+                updateConnectionStatus();
+            });
+
+            updateConnectionStatus();
+            updateOfflineSyncButton();
+            loadScanHistoryFromServer();
+            if (isSystemOnline) {
+                checkAndSyncPendingOfflineScans();
+            }
+        });
+
+        async function startCameraScanner() {
+            if (cameraRunning) return;
+            clearCameraError();
+
+            if (typeof Html5Qrcode === 'undefined') {
+                showCameraError('Không tải được thư viện đọc QR. Bạn vẫn có thể nhập mã thủ công hoặc thử tải lại trang.');
+                return;
+            }
+
+            if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+                showCameraError('Camera chỉ hoạt động trên localhost hoặc HTTPS. Vui lòng chạy bằng http://localhost:8080 hoặc triển khai HTTPS.');
+                return;
+            }
+
+            try {
+                const cameras = await Html5Qrcode.getCameras();
+                if (!cameras || cameras.length === 0) {
+                    showCameraError('Không tìm thấy camera trên thiết bị.');
+                    return;
+                }
+
+                selectedCameraId =
+                    cameras.find(c => /back|rear|environment/i.test(c.label))?.id
+                    || cameras[0].id;
+
+                await resetQrReaderInstance();
+                document.getElementById('qrPlaceholder').hidden = true;
+                document.getElementById('qrReaderShell').classList.add('is-active');
+
+                await html5QrCode.start(
+                    selectedCameraId,
+                    {
+                        fps: 10,
+                        qrbox: { width: 260, height: 260 },
+                        aspectRatio: 1.777
+                    },
+                    decodedText => onQrDecoded(decodedText, 'camera'),
+                    () => {}
+                );
+
+                cameraRunning = true;
+                updateCameraButtonState(true);
+            } catch (err) {
+                console.error('Không thể mở camera:', err);
+                showCameraError(buildCameraErrorMessage(err));
+                cameraRunning = false;
+                updateCameraButtonState(false);
+                document.getElementById('qrPlaceholder').hidden = false;
+                document.getElementById('qrReaderShell').classList.remove('is-active');
+            }
+        }
+
+        async function stopCameraScanner() {
+            if (html5QrCode && cameraRunning) {
+                try {
+                    await html5QrCode.stop();
+                    await html5QrCode.clear();
+                } catch (err) {
+                    console.warn('Không thể dừng camera:', err);
+                }
+            }
+
+            cameraRunning = false;
+            updateCameraButtonState(false);
+            document.getElementById('qrPlaceholder').hidden = false;
+            document.getElementById('qrReaderShell').classList.remove('is-active');
+        }
+
+        async function pauseOrStopCameraAfterSuccess() {
+            await stopCameraScanner();
+            const placeholder = document.getElementById('qrPlaceholder');
+            placeholder.hidden = false;
+            placeholder.querySelector('strong').textContent = 'Đã nhận mã QR';
+            placeholder.querySelector('span').textContent = 'Bấm "Mở Camera" để quét tiếp.';
+        }
+
+        async function resetQrReaderInstance() {
+            if (html5QrCode) {
+                try {
+                    if (!cameraRunning) {
+                        await html5QrCode.clear();
+                    }
+                } catch (err) {
+                    // Safe to ignore: clear() can fail when the instance is not rendering anything.
+                }
+            }
+            html5QrCode = new Html5Qrcode('qr-reader');
+        }
+
+        function buildCameraErrorMessage(err) {
+            const name = err?.name || '';
+            if (name === 'NotAllowedError') {
+                return 'Bạn chưa cấp quyền camera. Hãy cho phép camera trong trình duyệt.';
+            }
+            if (name === 'NotFoundError') {
+                return 'Không tìm thấy camera.';
+            }
+            if (name === 'NotReadableError') {
+                return 'Camera đang bị ứng dụng khác sử dụng hoặc trình duyệt không mở được nguồn video. Hãy tắt Zoom/Meet/Camera app rồi thử lại.';
+            }
+            if (name === 'OverconstrainedError') {
+                return 'Thiết bị không hỗ trợ cấu hình camera yêu cầu.';
+            }
+            if (name === 'SecurityError') {
+                return 'Trình duyệt chặn camera vì trang không chạy trên HTTPS/localhost.';
+            }
+            return 'Không thể mở camera. Bạn có thể nhập mã thủ công hoặc chọn ảnh QR từ máy.';
+        }
+
+        function updateCameraButtonState(isRunning) {
+            const startBtn = document.getElementById('btnStartCamera');
+            const stopBtn = document.getElementById('btnStopCamera');
+            if (!startBtn || !stopBtn) return;
+
+            startBtn.disabled = isRunning;
+            stopBtn.disabled = !isRunning;
+            startBtn.querySelector('span').textContent = isRunning ? 'Đang quét' : 'Mở Camera';
+        }
+
+        function showCameraError(message) {
+            const alert = document.getElementById('cameraAlert');
+            alert.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i><span>${escapeHtml(message)}</span>`;
+            alert.hidden = false;
+        }
+
+        function showCameraNotice(message) {
+            const alert = document.getElementById('cameraAlert');
+            alert.className = 'scan-alert scan-alert-success camera-alert';
+            alert.innerHTML = `<i class="bi bi-check-circle-fill"></i><span>${escapeHtml(message)}</span>`;
+            alert.hidden = false;
+        }
+
+        function clearCameraError() {
+            const alert = document.getElementById('cameraAlert');
+            alert.className = 'scan-alert scan-alert-danger camera-alert';
+            alert.hidden = true;
+            alert.innerHTML = '';
+        }
+
+        async function scanQrFromImage(file) {
+            if (!file) return;
+            document.getElementById('imageFileName').textContent = file.name;
+            clearCameraError();
+
+            if (typeof Html5Qrcode === 'undefined') {
+                showCameraError('Không tải được thư viện đọc QR. Vui lòng nhập mã thủ công.');
+                return;
+            }
+
+            try {
+                if (cameraRunning) {
+                    await stopCameraScanner();
+                }
+                await resetQrReaderInstance();
+                document.getElementById('qrPlaceholder').hidden = true;
+                document.getElementById('qrReaderShell').classList.add('is-active');
+
+                const decodedText = await html5QrCode.scanFile(file, true);
+                onQrDecoded(decodedText, 'image');
+            } catch (err) {
+                console.error('Không đọc được QR từ ảnh:', err);
+                showCameraError('Không nhận diện được QR trong ảnh. Vui lòng chọn ảnh rõ hơn hoặc nhập mã thủ công.');
+            }
+        }
+
+        function onQrDecoded(decodedText, source) {
+            if (!decodedText) return;
+
+            const now = Date.now();
+            if (decodedText === lastDecodedText && now - lastDecodedAt < 2000) {
+                return;
+            }
+            lastDecodedText = decodedText;
+            lastDecodedAt = now;
+
+            document.getElementById('manualQrInput').value = decodedText;
+
+            if (navigator.vibrate) {
+                navigator.vibrate(90);
+            }
+            playBeepAudio();
+
+            if (source === 'camera') {
+                pauseOrStopCameraAfterSuccess();
+            }
+
+            validateQrCode(decodedText);
+        }
+
+        async function validateQrCode(qrCode) {
+            const maSK = document.getElementById('maSK')?.value?.trim();
+            const congSoat = document.getElementById('congSoat')?.value?.trim() || 'Cổng chính';
+
+            if (!maSK) {
+                displayClientError('CHƯA CHỌN SỰ KIỆN', 'Vui lòng chọn sự kiện trước khi soát vé.');
+                return;
+            }
+
+            if (validationInFlight) {
+                return;
+            }
+
+            setValidationLoading(true);
+
+            try {
+                if (!isSystemOnline) {
+                    saveScanOffline(qrCode, maSK, congSoat);
+                    return;
+                }
+
+                const requestStartedAt = Date.now();
+                const params = new URLSearchParams();
+                params.append('qrPayloadOrCode', qrCode);
+                params.append('maSK', maSK);
+                params.append('congSoat', congSoat);
+
+                const response = await fetch('/api/soat-ve/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: params
+                });
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(data.message || 'Không thể soát vé lúc này.');
+                }
+
+                displayValidationResult(data, Date.now() - requestStartedAt);
+                await loadScanHistoryFromServer();
+            } catch (err) {
+                console.error('Lỗi xác thực vé:', err);
+                if (!navigator.onLine || err instanceof TypeError) {
+                    isSystemOnline = false;
+                    updateConnectionStatus();
+                    saveScanOffline(qrCode, maSK, congSoat);
+                } else {
+                    displayClientError('KHÔNG THỂ KIỂM TRA', err.message || 'Hệ thống chưa trả về kết quả hợp lệ.');
+                }
+            } finally {
+                setValidationLoading(false);
+            }
+        }
+
+        function setValidationLoading(isLoading) {
+            validationInFlight = isLoading;
+            const btn = document.getElementById('btnManualSubmit');
+            if (!btn) return;
+            btn.disabled = isLoading || btn.hasAttribute('data-server-disabled');
+            btn.innerHTML = isLoading
+                ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Đang kiểm tra'
+                : '<i class="bi bi-check-circle"></i> Kiểm Tra';
+        }
+
+        function displayValidationResult(res, fallbackDurationMs) {
+            const status = res?.status || 'Vé không tìm thấy';
+            const durationMs = Number.isFinite(res?.durationMs) ? res.durationMs : fallbackDurationMs;
+            const scanTime = res?.thoiGianQuet ? formatDateTime(res.thoiGianQuet) : formatDateTime(Date.now());
+
+            const banner = document.getElementById('resultBanner');
+            const icon = document.getElementById('resultIcon');
+            const title = document.getElementById('resultTitle');
+            const desc = document.getElementById('resultDesc');
+
+            banner.className = 'result-banner';
+
+            if (status === 'Hợp lệ') {
+                banner.classList.add('result-success');
+                icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                title.textContent = 'HỢP LỆ';
+                desc.textContent = 'Vé hợp lệ. Hệ thống đã cập nhật vé sang trạng thái Đã sử dụng.';
+            } else if (status === 'Vé đã sử dụng') {
+                banner.classList.add('result-warning');
+                icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                title.textContent = 'VÉ ĐÃ SỬ DỤNG';
+                desc.textContent = 'Vé này đã được soát trước đó. Không cập nhật lại trạng thái vé.';
+            } else if (status === 'Sai sự kiện') {
+                banner.classList.add('result-danger');
+                icon.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+                title.textContent = 'SAI SỰ KIỆN';
+                desc.textContent = 'Vé tồn tại nhưng không thuộc sự kiện đang chọn.';
+            } else if (status === 'Vé giả') {
+                banner.classList.add('result-danger');
+                icon.innerHTML = '<i class="bi bi-shield-x"></i>';
+                title.textContent = 'VÉ GIẢ / ĐÃ HỦY';
+                desc.textContent = 'Vé không được phép sử dụng tại cổng.';
+            } else {
+                banner.classList.add('result-danger');
+                icon.innerHTML = '<i class="bi bi-x-octagon-fill"></i>';
+                title.textContent = 'VÉ KHÔNG TÌM THẤY';
+                desc.textContent = 'Mã vé hoặc mã QR không tồn tại trên hệ thống.';
+            }
+
+            fillResultMeta({
+                maVe: res?.maVe || '-',
+                seatName: res?.seatName || '-',
+                zoneName: res?.zoneName || '-',
+                ticketOwner: res?.ticketOwner || '-',
+                durationMs,
+                scanTime
+            });
+        }
+
+        function displayClientError(titleText, message) {
+            const banner = document.getElementById('resultBanner');
+            banner.className = 'result-banner result-danger';
+            document.getElementById('resultIcon').innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>';
+            document.getElementById('resultTitle').textContent = titleText;
+            document.getElementById('resultDesc').textContent = message;
+            document.getElementById('resultMeta').hidden = true;
+        }
+
+        function fillResultMeta(data) {
+            document.getElementById('metaTicketCode').textContent = data.maVe;
+            document.getElementById('metaSeat').textContent = data.seatName;
+            document.getElementById('metaZone').textContent = data.zoneName;
+            document.getElementById('metaOwner').textContent = data.ticketOwner;
+            document.getElementById('responseTimeVal').textContent = data.durationMs ?? 0;
+            document.getElementById('metaScanTime').textContent = data.scanTime;
+            document.getElementById('resultMeta').hidden = false;
+        }
+
+        function saveScanOffline(qrCode, maSK, congSoat) {
+            const timestamp = Date.now();
+            const pending = getPendingScans();
+            pending.push({
+                qrPayloadOrCode: qrCode,
+                maSK,
+                congSoat,
+                thoiGianQuet: String(timestamp)
+            });
+            setPendingScans(pending);
+            updateOfflineSyncButton();
+
+            const banner = document.getElementById('resultBanner');
+            banner.className = 'result-banner result-offline';
+            document.getElementById('resultIcon').innerHTML = '<i class="bi bi-cloud-arrow-up-fill"></i>';
+            document.getElementById('resultTitle').textContent = 'ĐÃ LƯU OFFLINE';
+            document.getElementById('resultDesc').textContent = 'Lượt quét đã được lưu trên thiết bị và sẽ đồng bộ khi có mạng.';
+            fillResultMeta({
+                maVe: extractMaVeOrPayload(qrCode),
+                seatName: '-',
+                zoneName: 'Chờ đồng bộ',
+                ticketOwner: '-',
+                durationMs: 0,
+                scanTime: formatDateTime(timestamp)
+            });
+            renderHistoryRows([], pending);
+        }
+
+        async function checkAndSyncPendingOfflineScans() {
+            const pending = getPendingScans();
+            if (pending.length === 0 || !isSystemOnline) {
+                updateOfflineSyncButton();
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/soat-ve/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(pending)
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Đồng bộ offline thất bại.');
+                }
+
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                updateOfflineSyncButton();
+                showCameraNotice(`Đã đồng bộ ${data.syncedCount || pending.length} lượt quét offline.`);
+                await loadScanHistoryFromServer();
+            } catch (err) {
+                console.error('Đồng bộ offline thất bại:', err);
+            }
+        }
+
+        async function loadScanHistoryFromServer() {
+            const pending = getPendingScans();
+            if (!isSystemOnline) {
+                renderHistoryRows([], pending);
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/soat-ve/history', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) {
+                    throw new Error('Không tải được lịch sử.');
+                }
+                const history = await response.json();
+                renderHistoryRows(Array.isArray(history) ? history : [], pending);
+            } catch (err) {
+                console.error('Không tải được lịch sử soát vé:', err);
+                renderHistoryRows([], pending);
+            }
+        }
+
+        function renderHistoryRows(serverRows, pendingRows = []) {
+            const tbody = document.getElementById('historyTableBody');
+            const offlineRows = pendingRows.map(item => ({
+                thoiGianQuet: Number(item.thoiGianQuet) || item.thoiGianQuet,
+                maVe: extractMaVeOrPayload(item.qrPayloadOrCode),
+                ketQuaQuet: 'Chờ đồng bộ',
+                congSoat: item.congSoat,
+                nguonDuLieu: 'Offline'
+            }));
+            const rows = [...offlineRows, ...serverRows].slice(0, 10);
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="history-empty">
+                                <i class="bi bi-inbox"></i>
+                                <strong>Chưa có lượt quét nào</strong>
+                                <span>Lịch sử 10 lượt gần nhất sẽ xuất hiện tại đây.</span>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rows.map(item => {
+                const status = item.ketQuaQuet || 'Vé không tìm thấy';
+                return `
+                    <tr>
+                        <td>${escapeHtml(formatDateTime(item.thoiGianQuet))}</td>
+                        <td><strong>${escapeHtml(item.maVe || 'N/A')}</strong></td>
+                        <td><span class="status-badge ${getStatusBadgeClass(status)}">${escapeHtml(status)}</span></td>
+                        <td>${escapeHtml(item.congSoat || 'Cổng chính')}</td>
+                        <td><span class="source-badge">${escapeHtml(item.nguonDuLieu || 'Online')}</span></td>
+                    </tr>`;
+            }).join('');
+        }
+
+        function getStatusBadgeClass(status) {
+            if (status === 'Hợp lệ') return 'status-valid';
+            if (status === 'Vé đã sử dụng' || status === 'Chờ đồng bộ') return 'status-used';
+            return 'status-invalid';
+        }
+
+        function updateConnectionStatus() {
+            const pill = document.getElementById('connectionStatus');
+            const label = document.getElementById('connectionLabel');
+            const banner = document.getElementById('offlineAlertBanner');
+            pill.classList.toggle('status-online', isSystemOnline);
+            pill.classList.toggle('status-offline', !isSystemOnline);
+            label.textContent = isSystemOnline ? 'ONLINE' : 'OFFLINE';
+            banner.hidden = isSystemOnline;
+        }
+
+        function getPendingScans() {
+            try {
+                return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
+            } catch (err) {
+                return [];
+            }
+        }
+
+        function setPendingScans(items) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+        }
+
+        function updateOfflineSyncButton() {
+            const pending = getPendingScans();
+            const btn = document.getElementById('btnManualSync');
+            const pill = document.getElementById('syncPill');
+            if (!btn || !pill) return;
+            btn.hidden = pending.length === 0;
+            pill.textContent = pending.length;
+        }
+
+        function extractMaVeOrPayload(payload) {
+            if (!payload) return 'N/A';
+            if (payload.startsWith('TICKET|')) {
+                const maVePart = payload.split('|').find(part => part.startsWith('maVe='));
+                if (maVePart) {
+                    return maVePart.substring(5) || 'N/A';
+                }
+            }
+            return payload.length > 22 ? `${payload.substring(0, 22)}...` : payload;
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleString('vi-VN');
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function playBeepAudio() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.12);
+            } catch (err) {
+                // Optional feedback only.
+            }
+        }
+    </script>
+</th:block>
+
+</body>
+</html>

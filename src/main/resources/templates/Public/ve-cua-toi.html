@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Vé của tôi - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <style>
+            .ticket-container {
+                max-width: 1200px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .glass-header {
+                background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(59, 130, 246, 0.1));
+                backdrop-filter: blur(10px);
+                border: 1px solid var(--dd-border);
+                border-radius: var(--dd-radius-lg);
+                padding: 30px;
+                margin-bottom: 40px;
+                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+            }
+            .glass-header h1 {
+                font-family: "Be Vietnam Pro", "Inter", sans-serif;
+                font-size: 32px;
+                color: var(--dd-text);
+                margin: 0 0 10px;
+            }
+            .ticket-card {
+                background: var(--dd-surface);
+                border: 1px solid var(--dd-border);
+                border-radius: var(--dd-radius-lg);
+                overflow: hidden;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            }
+            .ticket-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 30px rgba(79, 70, 229, 0.08);
+                border-color: rgba(79, 70, 229, 0.2);
+            }
+            .ticket-body {
+                padding: 24px;
+                display: flex;
+                flex-direction: row;
+                gap: 20px;
+            }
+            .ticket-info {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+            .ticket-qr-section {
+                text-align: center;
+                border-left: 2px dashed var(--dd-border);
+                padding-left: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .ticket-qr-section img {
+                border-radius: 8px;
+                border: 1px solid var(--dd-border);
+                padding: 8px;
+                background: white;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                transition: transform 0.2s;
+            }
+            .ticket-qr-section img:hover {
+                transform: scale(1.05);
+            }
+            .event-name {
+                font-family: "Be Vietnam Pro", "Inter", sans-serif;
+                font-size: 20px;
+                color: var(--dd-text);
+                margin-bottom: 12px;
+                line-height: 1.3;
+            }
+            .meta-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 14px;
+                color: var(--dd-muted);
+                margin-bottom: 8px;
+            }
+            .meta-item i {
+                color: var(--dd-indigo);
+                width: 16px;
+            }
+            .price-tag {
+                font-size: 18px;
+                font-weight: 700;
+                color: #ef4444;
+                margin-top: 15px;
+            }
+            .badge-container {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+            }
+            .btn-view-detail {
+                background: var(--dd-indigo);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                margin-top: 15px;
+                box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+            }
+            .btn-view-detail:hover {
+                background: #4338ca;
+                color: white;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 15px rgba(79, 70, 229, 0.25);
+            }
+            @media (max-width: 768px) {
+                .ticket-body {
+                    flex-direction: column;
+                }
+                .ticket-qr-section {
+                    border-left: none;
+                    border-top: 2px dashed var(--dd-border);
+                    padding-left: 0;
+                    padding-top: 20px;
+                }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <main layout:fragment="content">
+        <div class="ticket-container">
+            <div class="glass-header animate__animated animate__fadeIn">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h1>Vé Của Tôi</h1>
+                        <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> Quản lý toàn bộ vé sự kiện bạn đã mua. Xuất trình mã QR tại cổng kiểm soát.</p>
+                    </div>
+                    <a href="/" class="btn-dd-outline"><i class="bi bi-arrow-left me-1"></i> Quay lại trang chủ</a>
+                </div>
+            </div>
+
+            <!-- Grid danh sách vé -->
+            <div class="row g-4" th:if="${tickets != null and !tickets.isEmpty()}">
+                <div class="col-lg-6 col-12" th:each="tk : ${tickets}">
+                    <div class="ticket-card animate__animated animate__fadeInUp">
+                        <!-- Badge trạng thái vé -->
+                        <div class="badge-container">
+                            <span th:if="${tk.trangThaiVe == 'Chưa sử dụng'}" class="dd-badge dd-badge-success">Chưa sử dụng</span>
+                            <span th:if="${tk.trangThaiVe == 'Đã sử dụng'}" class="dd-badge dd-badge-info">Đã sử dụng</span>
+                            <span th:if="${tk.trangThaiVe == 'Đã hủy'}" class="dd-badge dd-badge-danger">Đã hủy</span>
+                        </div>
+                        
+                        <div class="ticket-body">
+                            <!-- Phần thông tin vé -->
+                            <div class="ticket-info">
+                                <div>
+                                    <h3 class="event-name" th:text="${tk.tenSuKien}">Tên Sự Kiện Trực Tuyến</h3>
+                                    
+                                    <div class="meta-item">
+                                        <i class="bi bi-calendar3"></i>
+                                        <span th:text="${tk.thoiGianBatDau != null ? #dates.format(tk.thoiGianBatDau, 'dd/MM/yyyy HH:mm') : 'Đang cập nhật'}">01/01/2026</span>
+                                    </div>
+                                    
+                                    <div class="meta-item">
+                                        <i class="bi bi-tag"></i>
+                                        <span th:text="'Khu vực: ' + ${tk.tenKhuVuc}">VIP Zone</span>
+                                    </div>
+                                    
+                                    <div class="meta-item">
+                                        <i class="bi bi-grid-3x3-gap"></i>
+                                        <span th:text="'Ghế ngồi: ' + ${tk.tenGhe}">Hàng A - Ghế 10</span>
+                                    </div>
+                                    
+                                    <div class="meta-item">
+                                        <i class="bi bi-hash"></i>
+                                        <span th:text="'Mã vé: ' + ${tk.maVe}">VE-12345678</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <div class="price-tag" th:text="${#numbers.formatDecimal(tk.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.000.000 VNĐ</div>
+                                    <a th:href="@{/ve-cua-toi/{maVe}(maVe=${tk.maVe})}" class="btn-view-detail">
+                                        <i class="bi bi-qr-code"></i> Xem chi tiết vé
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Phần hiển thị mã QR nhỏ -->
+                            <div class="ticket-qr-section">
+                                <a th:href="@{/ve-cua-toi/{maVe}(maVe=${tk.maVe})}">
+                                    <img th:src="'data:image/png;base64,' + ${tk.qrBase64}" alt="QR Ticket Code" width="130" height="130">
+                                </a>
+                                <div class="text-muted mt-2" style="font-size: 11px;">Mã QR Soát Vé</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khi không có vé nào -->
+            <div th:if="${tickets == null or tickets.isEmpty()}" class="text-center py-5 glass-header animate__animated animate__fadeIn">
+                <i class="bi bi-ticket-x-fill text-muted" style="font-size: 60px;"></i>
+                <h3 class="mt-3" style="font-family: "Be Vietnam Pro", "Inter", sans-serif;">Bạn chưa sở hữu vé nào</h3>
+                <p class="text-muted">Hãy khám phá các sự kiện sôi động và đặt mua vé ngay hôm nay!</p>
+                <a href="/" class="btn-dd-primary mt-3"><i class="bi bi-search me-1"></i> Tìm kiếm sự kiện</a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

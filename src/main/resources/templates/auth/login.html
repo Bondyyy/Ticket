@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+
+<head>
+    <title>Đăng nhập</title>
+    <th:block layout:fragment="page-css">
+        <link th:href="@{/css/pages/auth.css}" rel="stylesheet">
+    </th:block>
+</head>
+
+<main layout:fragment="content">
+<div class="login-wrapper">
+    <div class="login-card">
+
+        <div class="brand-logo">
+            <div class="logo-icon"><i class="bi bi-ticket-perforated-fill"></i></div>
+            <span class="logo-text">Dề Dê Tickets</span>
+        </div>
+
+        <h1 class="login-title">Chào mừng trở lại</h1>
+        <p class="login-subtitle">Đăng nhập để tiếp tục đặt vé</p>
+
+        <div class="alert-custom" th:if="${error}" th:text="${error}">
+            Tên đăng nhập hoặc mật khẩu không đúng.
+        </div>
+
+        <div class="alert-success-custom" th:if="${success}" th:text="${success}">
+            Đăng ký thành công! Vui lòng đăng nhập.
+        </div>
+
+        <form th:action="@{/dang-nhap}" method="post" id="loginForm" novalidate>
+            <input type="hidden" name="redirectUrl" th:value="${redirectUrl}">
+
+            <div class="mb-4">
+                <label class="form-label" for="tenTaiKhoan">Tên đăng nhập</label>
+                <div class="input-wrapper">
+                    <input class="dd-input"
+                           type="text"
+                           id="tenTaiKhoan"
+                           name="tenTaiKhoan"
+                           placeholder="Nhập tên đăng nhập..."
+                           th:value="${tenTaiKhoanCu}"
+                           autocomplete="username"
+                           required>
+                    <i class="bi bi-person input-icon"></i>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label" for="matKhau">Mật khẩu</label>
+                <div class="input-wrapper">
+                    <input class="dd-input has-icon"
+                           type="password"
+                           id="matKhau"
+                           name="matKhau"
+                           placeholder="Nhập mật khẩu..."
+                           autocomplete="current-password"
+                           required>
+                    <i class="bi bi-eye input-icon" id="togglePassword" onclick="togglePwd()"></i>
+                </div>
+            </div>
+
+            <div class="text-end mb-4">
+                <span class="forgot-link text-muted" aria-disabled="true">Quên mật khẩu?</span>
+            </div>
+
+            <button type="submit" class="btn-login" id="btnLogin">
+                <span id="btnText">Đăng nhập</span>
+                <span id="btnSpinner" class="d-none">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang xử lý...
+                </span>
+            </button>
+        </form>
+
+        <div class="divider">hoặc</div>
+        <p class="register-prompt">
+            Chưa có tài khoản?
+            <a th:href="@{/dang-ky}">Đăng ký ngay</a>
+        </p>
+
+    </div>
+</div>
+</main>
+
+<th:block layout:fragment="page-js">
+<script>
+    function togglePwd() {
+        const input = document.getElementById('matKhau');
+        const icon  = document.getElementById('togglePassword');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        const username = document.getElementById('tenTaiKhoan').value.trim();
+        const password = document.getElementById('matKhau').value.trim();
+        if (!username || !password) { e.preventDefault(); return; }
+
+        document.getElementById('btnText').classList.add('d-none');
+        document.getElementById('btnSpinner').classList.remove('d-none');
+        document.getElementById('btnLogin').disabled = true;
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('tenTaiKhoan');
+        if (!input.value) input.focus();
+        else document.getElementById('matKhau').focus();
+    });
+</script>
+</th:block>
+
+</html>

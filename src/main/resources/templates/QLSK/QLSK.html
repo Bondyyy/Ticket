@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Sự Kiện - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/QLSK.css}">
+    </th:block>
+</head>
+
+<body>
+<div layout:fragment="content" class="admin-page">
+<!-- ===================== MAIN CONTENT ===================== -->
+        <main class="main-content">
+
+            <!-- Header -->
+            <header class="main-header">
+                <h2><i class="fa-solid fa-calendar-days" style="margin-right:10px;color:#3b82f6;"></i>Quản Lý Sự Kiện</h2>
+                <div class="header-right">
+                    <i class="fa-solid fa-bell" title="Thông báo"></i>
+                    <span>Hôm nay: <b id="currentDate"></b></span>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Thống báo (Alert) -->
+                <div th:if="${thanhCong}" class="alert-box alert-success" style="display:block;">
+                    <i class="fa-solid fa-circle-check" style="margin-right:8px;"></i>
+                    <span th:text="${thanhCong}"></span>
+                </div>
+                <div th:if="${loi}" class="alert-box alert-error" style="display:block;">
+                    <i class="fa-solid fa-circle-xmark" style="margin-right:8px;"></i>
+                    <span th:text="${loi}"></span>
+                </div>
+
+                <!-- Toolbar: Search & Filter -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Tên sự kiện, tags, mô tả ngắn..." th:value="${keyword}">
+                        </div>
+                        <select id="statusFilter" class="filter-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="Chưa mở bán" th:selected="${trangThaiFilter == 'Chưa mở bán'}">Chưa mở bán</option>
+                            <option value="Đang mở bán" th:selected="${trangThaiFilter == 'Đang mở bán'}">Đang mở bán</option>
+                            <option value="Đã kết thúc" th:selected="${trangThaiFilter == 'Đã kết thúc'}">Đã kết thúc</option>
+                            <option value="Đã hủy" th:selected="${trangThaiFilter == 'Đã hủy'}">Đã hủy</option>
+                            <option value="Tạm ngưng" th:selected="${trangThaiFilter == 'Tạm ngưng'}">Tạm ngưng</option>
+                        </select>
+                        <button class="btn-filter" onclick="filterTable()">
+                            <i class="fa-solid fa-filter"></i> Lọc
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <button class="btn-add" onclick="moModalThem()">
+                            <i class="fa-solid fa-plus"></i> Thêm Sự Kiện
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã SK</th>
+                                    <th>Tên Sự Kiện</th>
+                                    <th>Bắt Đầu</th>
+                                    <th>Kết Thúc</th>
+                                    <th>Tổng Vé</th>
+                                    <th>Đã Bán</th>
+                                    <th style="text-align:center;">Trạng Thái</th>
+                                    <th style="text-align:center;">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventTableBody">
+                                <!-- Empty state -->
+                                <tr th:if="${suKienList == null or suKienList.isEmpty()}">
+                                    <td colspan="8" style="text-align:center;padding:30px;color:#93c5fd;">
+                                        <i class="fa-solid fa-calendar-xmark"
+                                            style="font-size:28px;margin-bottom:8px;display:block;"></i>
+                                        Chưa có sự kiện nào.
+                                    </td>
+                                </tr>
+                                <!-- Data rows -->
+                                <tr th:each="sk : ${suKienList}" th:attr="data-ma=${sk.maSK}"
+                                    onclick="moModalSua(this.getAttribute('data-ma'))">
+                                    <td><b th:text="${sk.maSK}">SK-001</b></td>
+                                    <td th:text="${sk.tenSK != null ? sk.tenSK : '-'}">-</td>
+                                    <td th:text="${sk.thoiGianBatDau != null ? #dates.format(sk.thoiGianBatDau, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                                    <td th:text="${sk.thoiGianKetThuc != null ? #dates.format(sk.thoiGianKetThuc, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                                    <td th:text="${sk.tongSoVe != null ? sk.tongSoVe : '0'}">0</td>
+                                    <td th:text="${sk.soVeDaBan != null ? sk.soVeDaBan : '0'}">0</td>
+                                    <td style="text-align:center;">
+                                        <span th:if="${sk.trangThaiSK == 'Chưa mở bán'}" class="badge badge-primary">Chưa mở bán</span>
+                                        <span th:if="${sk.trangThaiSK == 'Đang mở bán'}" class="badge badge-success">Đang mở bán</span>
+                                        <span th:if="${sk.trangThaiSK == 'Đã kết thúc'}" class="badge badge-secondary">Đã kết thúc</span>
+                                        <span th:if="${sk.trangThaiSK == 'Đã hủy'}" class="badge badge-danger">Đã hủy</span>
+                                        <span th:if="${sk.trangThaiSK == 'Tạm ngưng'}" class="badge badge-warning">Tạm ngưng</span>
+                                        <span th:if="${sk.trangThaiSK != 'Chưa mở bán' and sk.trangThaiSK != 'Đang mở bán' and sk.trangThaiSK != 'Đã kết thúc' and sk.trangThaiSK != 'Đã hủy' and sk.trangThaiSK != 'Tạm ngưng'}"
+                                              class="badge badge-secondary" th:text="${sk.trangThaiSK}">?</span>
+                                    </td>
+                                    <td style="text-align:center;" onclick="event.stopPropagation()">
+                                        <button class="btn-action btn-stage"
+                                            th:attr="onclick='moModalSanKhau(\'' + ${sk.maSK} + '\')'"
+                                            title="Thiết lập sân khấu">
+                                            <i class="fa-solid fa-layer-group"></i>
+                                        </button>
+                                        <button class="btn-action btn-edit"
+                                            th:attr="onclick='moModalSua(\'' + ${sk.maSK} + '\')'"
+                                            title="Sửa sự kiện">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete"
+                                            th:disabled="${sk.trangThaiSK == 'Đã hủy'}"
+                                            th:attr="onclick='huySuKien(\'' + ${sk.maSK} + '\')'" title="Hủy sự kiện">
+                                            <i class="fa-solid fa-ban"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-bar">
+                        <span>Hiển thị <b th:text="${suKienList != null ? suKienList.size() : 0}">0</b> sự kiện</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    <!-- ===================== MODAL THÊM / SỬA ===================== -->
+    <div id="eventModal" class="modal-overlay">
+        <div class="modal-box event-modal-box">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fa-solid fa-calendar-plus" style="margin-right:8px;color:#3b82f6;"></i>Thêm Sự Kiện</h3>
+                <button class="btn-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="eventForm" method="post" action="/sukien/tao-moi" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="m_maSK" name="maSK">
+
+                    <section class="form-section">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <h4>Thông tin cơ bản</h4>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group span-2">
+                                <label for="m_tenSK">Tên sự kiện <span class="required">*</span></label>
+                                <input type="text" id="m_tenSK" name="tenSK" required class="form-control">
+                            </div>
+                            <div class="form-group span-2">
+                                <label for="m_moTaNgan">Mô tả ngắn</label>
+                                <input type="text" id="m_moTaNgan" name="moTaNgan" class="form-control">
+                            </div>
+                            <div class="form-group span-2">
+                                <label for="m_moTa">Mô tả chi tiết</label>
+                                <textarea id="m_moTa" name="moTa" rows="4" class="form-control" placeholder="Mô tả chi tiết về sự kiện..."></textarea>
+                            </div>
+                            <div class="form-group span-2">
+                                <label for="m_tags">Tags</label>
+                                <input type="text" id="m_tags" name="tags" placeholder="vd: Concert, Live, EDM" class="form-control">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-clock"></i>
+                            <h4>Thời gian</h4>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="m_thoiGianBatDau">Bắt đầu</label>
+                                <input type="datetime-local" id="m_thoiGianBatDau" name="thoiGianBatDau" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="m_thoiGianKetThuc">Kết thúc</label>
+                                <input type="datetime-local" id="m_thoiGianKetThuc" name="thoiGianKetThuc" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="m_thoiGianMoBan">Mở bán vé</label>
+                                <input type="datetime-local" id="m_thoiGianMoBan" name="thoiGianMoBan" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="m_thoiGianDongBan">Đóng bán vé</label>
+                                <input type="datetime-local" id="m_thoiGianDongBan" name="thoiGianDongBan" class="form-control">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-image"></i>
+                            <h4>Hình ảnh</h4>
+                        </div>
+                        <input type="hidden" id="m_hinhAnh" name="hinhAnh">
+                        <input type="hidden" id="m_hinhAnhThumb" name="hinhAnhThumb">
+                        <div class="image-upload-grid">
+                            <div class="form-group image-upload-group">
+                                <label>Hình ảnh chính</label>
+                                <label class="image-upload-card" for="m_hinhAnhFile">
+                                    <span id="preview_hinhAnh" class="image-preview image-preview-empty">
+                                        <span>Chưa có ảnh</span>
+                                    </span>
+                                    <span class="image-upload-meta">
+                                        <span class="image-upload-action"><i class="fa-solid fa-upload"></i> Chọn ảnh</span>
+                                        <small>jpg, jpeg, png, webp</small>
+                                    </span>
+                                </label>
+                                <input type="file" id="m_hinhAnhFile" name="hinhAnhFile" accept="image/*" class="file-input">
+                            </div>
+                            <div class="form-group image-upload-group">
+                                <label>Hình ảnh thumbnail</label>
+                                <label class="image-upload-card" for="m_hinhAnhThumbFile">
+                                    <span id="preview_hinhAnhThumb" class="image-preview image-preview-empty">
+                                        <span>Chưa có ảnh</span>
+                                    </span>
+                                    <span class="image-upload-meta">
+                                        <span class="image-upload-action"><i class="fa-solid fa-upload"></i> Chọn ảnh</span>
+                                        <small>jpg, jpeg, png, webp</small>
+                                    </span>
+                                </label>
+                                <input type="file" id="m_hinhAnhThumbFile" name="hinhAnhThumbFile" accept="image/*" class="file-input">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <h4>Địa điểm &amp; loại sự kiện</h4>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="m_maDiaDiem">Địa điểm</label>
+                                <select id="m_maDiaDiem" name="maDiaDiem" class="form-control">
+                                    <option value="">-- Chọn địa điểm --</option>
+                                    <option th:each="dd : ${dsDiaDiem}" th:value="${dd.MADIADIEM}" th:text="${dd.TENDIADIEM}"></option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="m_maNV">Nhân viên phụ trách</label>
+                                <select id="m_maNV" name="maNV" class="form-control">
+                                    <option value="">-- Chọn nhân viên --</option>
+                                    <option th:each="nv : ${dsNhanVien}" th:value="${nv.MANV}" th:text="${nv.TENNV} + ' (' + ${nv.MANV} + ')'"></option>
+                                </select>
+                            </div>
+                            <div class="form-group span-2 autocomplete-group">
+                                <label for="m_tenLoaiSK">Loại sự kiện <span class="required">*</span></label>
+                                <div class="autocomplete-field" id="loaiSKAutocomplete">
+                                    <input type="text" id="m_tenLoaiSK" class="form-control" placeholder="Gõ để tìm hoặc thêm loại sự kiện" autocomplete="off">
+                                    <input type="hidden" id="m_maLoaiSK" name="maLoaiSK">
+                                    <div id="loaiSKSuggestions" class="autocomplete-menu"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="form-section">
+                        <div class="form-section-title">
+                            <i class="fa-solid fa-toggle-on"></i>
+                            <h4>Trạng thái</h4>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="m_tongSoVe">Tổng số vé</label>
+                                <input type="number" id="m_tongSoVe" name="tongSoVe" value="0" class="form-control" readonly
+                                       title="Tổng số vé được cập nhật từ sơ đồ ghế, không chỉnh ở form thông tin sự kiện.">
+                            </div>
+                            <div class="form-group">
+                                <label for="m_trangThaiSK">Trạng thái</label>
+                                <select id="m_trangThaiSK" name="trangThaiSK" class="form-control">
+                                    <option value="Chưa mở bán">Chưa mở bán</option>
+                                    <option value="Đang mở bán">Đang mở bán</option>
+                                    <option value="Đã kết thúc">Đã kết thúc</option>
+                                    <option value="Đã hủy">Đã hủy</option>
+                                    <option value="Tạm ngưng">Tạm ngưng</option>
+                                </select>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-close-modal" onclick="closeModal()">Hủy</button>
+                    <button type="submit" class="btn-save" id="btnSave">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL THIẾT LẬP SÂN KHẤU ===================== -->
+    <div id="stageModal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 900px; width: 90%;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-layer-group" style="margin-right:8px;color:#8b5cf6;"></i>Thiết Lập Sân Khấu</h3>
+                <button class="btn-close" onclick="closeStageModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="s_maSK">
+                
+                <div style="display:flex; gap: 20px; align-items: stretch;">
+                    <!-- Cột trái: Cấu hình Khu vực -->
+                    <div style="flex: 1;">
+                        <h4 style="margin-bottom: 10px; font-size: 15px;">Danh Sách Khu Vực</h4>
+                        <div id="zoneList" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
+                            <!-- Danh sách zone thêm bằng JS -->
+                        </div>
+                        <button type="button" class="btn-add" onclick="addZoneForm()" style="width: 100%; margin-bottom: 20px; padding: 10px;">
+                            <i class="fa-solid fa-plus"></i> Thêm Khu Vực Mới
+                        </button>
+                    </div>
+
+                    <!-- Cột phải: Xem trước Sơ đồ -->
+                    <div style="flex: 1; border-left: 1px solid #e2e8f0; padding-left: 20px;">
+                        <h4 style="margin-bottom: 10px; font-size: 15px;">Xem Trước Sơ Đồ</h4>
+                        <div class="stage-preview-container" style="background:#f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align:center; min-height: 400px; max-height: 400px; overflow: auto;">
+                            <div style="background:#334155; color:white; padding:10px; border-radius: 4px; margin-bottom: 20px; font-weight:bold; letter-spacing: 2px;">
+                                SÂN KHẤU (STAGE)
+                            </div>
+                            <div id="stagePreviewMap" class="seat-map admin-seat-preview">
+                                <!-- Lưới ghế sinh ra ở đây -->
+                                <p style="color:#94a3b8; font-size:13px; margin-top:50px;">Bấm "Cập nhật xem trước" để xem lưới ghế</p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-filter" onclick="previewStage()" style="width: 100%; margin-top: 10px; padding: 10px;">
+                            <i class="fa-solid fa-eye"></i> Cập nhật Xem trước
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-close-modal" onclick="closeStageModal()">Đóng</button>
+                <button type="button" class="btn-save" onclick="saveStageConfig()">Lưu Sơ Đồ & Sinh Vé</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== JAVASCRIPT ===================== -->
+    <script th:inline="javascript">
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
+
+        setTimeout(() => {
+            document.querySelectorAll('.alert-success, .alert-error').forEach(el => el.style.display = 'none');
+        }, 3000);
+
+        function filterTable() {
+            const kw = document.getElementById('searchInput').value.trim();
+            const st = document.getElementById('statusFilter').value;
+            window.location.href = '/sukien?keyword=' + encodeURIComponent(kw) + '&trangThai=' + encodeURIComponent(st);
+        }
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterTable();
+            }
+        });
+
+        const modal = document.getElementById('eventModal');
+        const form = document.getElementById('eventForm');
+        const btnSave = document.getElementById('btnSave');
+        const loaiSKInput = document.getElementById('m_tenLoaiSK');
+        const loaiSKHidden = document.getElementById('m_maLoaiSK');
+        const loaiSKSuggestions = document.getElementById('loaiSKSuggestions');
+        const loaiSKAutocomplete = document.getElementById('loaiSKAutocomplete');
+        let loaiSKSearchTimer = null;
+        let submittingAfterLoaiSKCreate = false;
+
+        function setSaveButtonText(text) {
+            btnSave.textContent = text;
+        }
+
+        function setImagePreview(previewId, src) {
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = '';
+            preview.classList.toggle('image-preview-empty', !src);
+
+            if (!src) {
+                const placeholder = document.createElement('span');
+                placeholder.textContent = 'Chưa có ảnh';
+                preview.appendChild(placeholder);
+                return;
+            }
+
+            const image = document.createElement('img');
+            image.src = src;
+            image.alt = 'Preview ảnh sự kiện';
+            preview.appendChild(image);
+        }
+
+        function resetImageUploads() {
+            document.getElementById('m_hinhAnhFile').value = '';
+            document.getElementById('m_hinhAnhThumbFile').value = '';
+            document.getElementById('m_hinhAnh').value = '';
+            document.getElementById('m_hinhAnhThumb').value = '';
+            setImagePreview('preview_hinhAnh', '');
+            setImagePreview('preview_hinhAnhThumb', '');
+        }
+
+        function bindImagePreview(inputId, previewId) {
+            document.getElementById(inputId).addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                if (!file) {
+                    setImagePreview(previewId, '');
+                    return;
+                }
+                setImagePreview(previewId, URL.createObjectURL(file));
+            });
+        }
+
+        bindImagePreview('m_hinhAnhFile', 'preview_hinhAnh');
+        bindImagePreview('m_hinhAnhThumbFile', 'preview_hinhAnhThumb');
+
+        function resetLoaiSK() {
+            loaiSKInput.value = '';
+            loaiSKHidden.value = '';
+            loaiSKSuggestions.innerHTML = '';
+            loaiSKSuggestions.classList.remove('open');
+        }
+
+        function normalizeLoaiSKName(value) {
+            return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi-VN');
+        }
+
+        function selectLoaiSK(item) {
+            loaiSKHidden.value = item.maLoaiSK || '';
+            loaiSKInput.value = item.tenLoaiSK || '';
+            loaiSKSuggestions.innerHTML = '';
+            loaiSKSuggestions.classList.remove('open');
+        }
+
+        function appendLoaiSKOption(item) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'autocomplete-item';
+
+            const name = document.createElement('span');
+            name.className = 'autocomplete-name';
+            name.textContent = item.tenLoaiSK || '';
+            button.appendChild(name);
+
+            if (item.moTa) {
+                const desc = document.createElement('small');
+                desc.textContent = item.moTa;
+                button.appendChild(desc);
+            }
+
+            button.addEventListener('click', () => selectLoaiSK(item));
+            loaiSKSuggestions.appendChild(button);
+        }
+
+        function renderLoaiSKSuggestions(items, keyword) {
+            const cleanKeyword = keyword.trim();
+            loaiSKSuggestions.innerHTML = '';
+
+            items.forEach(appendLoaiSKOption);
+
+            const hasExactMatch = items.some(item => normalizeLoaiSKName(item.tenLoaiSK) === normalizeLoaiSKName(cleanKeyword));
+            if (cleanKeyword && !hasExactMatch) {
+                const createButton = document.createElement('button');
+                createButton.type = 'button';
+                createButton.className = 'autocomplete-item autocomplete-create';
+                createButton.textContent = '+ Thêm loại sự kiện mới: ' + cleanKeyword;
+                createButton.addEventListener('click', () => createLoaiSK(cleanKeyword));
+                loaiSKSuggestions.appendChild(createButton);
+            }
+
+            loaiSKSuggestions.classList.toggle('open', loaiSKSuggestions.children.length > 0);
+        }
+
+        function searchLoaiSK() {
+            const keyword = loaiSKInput.value.trim();
+            fetch('/api/loaisukien/search?keyword=' + encodeURIComponent(keyword))
+                .then(r => {
+                    if (!r.ok) throw new Error('Không thể tìm loại sự kiện');
+                    return r.json();
+                })
+                .then(items => renderLoaiSKSuggestions(items || [], keyword))
+                .catch(() => {
+                    loaiSKSuggestions.innerHTML = '';
+                    loaiSKSuggestions.classList.remove('open');
+                });
+        }
+
+        async function createLoaiSK(tenLoaiSK) {
+            const response = await fetch('/api/loaisukien/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenLoaiSK: tenLoaiSK })
+            });
+
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || 'Không thể thêm loại sự kiện');
+            }
+
+            const item = await response.json();
+            selectLoaiSK(item);
+            return item;
+        }
+
+        loaiSKInput.addEventListener('input', function () {
+            loaiSKHidden.value = '';
+            clearTimeout(loaiSKSearchTimer);
+            loaiSKSearchTimer = setTimeout(searchLoaiSK, 180);
+        });
+
+        loaiSKInput.addEventListener('focus', searchLoaiSK);
+
+        document.addEventListener('click', function (e) {
+            if (!loaiSKAutocomplete.contains(e.target)) {
+                loaiSKSuggestions.classList.remove('open');
+            }
+        });
+
+        form.addEventListener('submit', async function (e) {
+            if (submittingAfterLoaiSKCreate) {
+                return;
+            }
+
+            const typedLoaiSK = loaiSKInput.value.trim();
+            if (!loaiSKHidden.value && typedLoaiSK) {
+                e.preventDefault();
+                btnSave.disabled = true;
+                try {
+                    await createLoaiSK(typedLoaiSK);
+                    submittingAfterLoaiSKCreate = true;
+                    form.requestSubmit();
+                } catch (error) {
+                    alert(error.message || 'Không thể thêm loại sự kiện mới.');
+                    btnSave.disabled = false;
+                }
+                return;
+            }
+
+            if (!loaiSKHidden.value) {
+                e.preventDefault();
+                alert('Vui lòng chọn hoặc thêm loại sự kiện.');
+                loaiSKInput.focus();
+            }
+        });
+
+        function moModalThem() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-calendar-plus" style="margin-right:8px;color:#3b82f6;"></i>Thêm Sự Kiện';
+            form.action = '/sukien/tao-moi';
+            form.reset();
+            submittingAfterLoaiSKCreate = false;
+            btnSave.disabled = false;
+            setSaveButtonText('Tạo sự kiện');
+            document.getElementById('m_maSK').value = '';
+            document.getElementById('m_moTa').value = '';
+            document.getElementById('m_tags').value = '';
+            resetImageUploads();
+            resetLoaiSK();
+            modal.classList.add('open');
+        }
+
+        function formatForDateTimeLocal(value) {
+            if (!value) return '';
+            let s = String(value).trim();
+
+            // Oracle/Hibernate có thể trả về: yyyy-MM-dd HH:mm:ss.0
+            if (s.includes('.')) {
+                s = s.split('.')[0];
+            }
+
+            if (s.endsWith('Z')) {
+                s = s.substring(0, s.length - 1);
+            }
+
+            s = s.replace(' ', 'T');
+
+            if (s.length >= 16) {
+                return s.substring(0, 16);
+            }
+
+            return '';
+        }
+
+        function moModalSua(maSK) {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen" style="margin-right:8px;color:#eab308;"></i>Cập Nhật Sự Kiện';
+            form.action = '/sukien/update';
+            form.reset();
+            submittingAfterLoaiSKCreate = false;
+            btnSave.disabled = false;
+            setSaveButtonText('Lưu thay đổi');
+            resetImageUploads();
+            resetLoaiSK();
+
+            fetch('/sukien/api/' + maSK)
+                .then(r => {
+                    if (!r.ok) throw new Error('Không thể tải dữ liệu sự kiện');
+                    return r.json();
+                })
+                .then(d => {
+                    document.getElementById('m_maSK').value = d.maSK || '';
+                    document.getElementById('m_tenSK').value = d.tenSK || '';
+                    document.getElementById('m_moTaNgan').value = d.moTaNgan || '';
+                    document.getElementById('m_moTa').value = d.moTa || '';
+                    document.getElementById('m_tongSoVe').value = d.tongSoVe || 0;
+                    document.getElementById('m_trangThaiSK').value = d.trangThaiSK || 'Chưa mở bán';
+                    document.getElementById('m_hinhAnh').value = d.hinhAnh || '';
+                    document.getElementById('m_hinhAnhThumb').value = d.hinhAnhThumb || '';
+                    setImagePreview('preview_hinhAnh', d.hinhAnh || '');
+                    setImagePreview('preview_hinhAnhThumb', d.hinhAnhThumb || '');
+                    document.getElementById('m_tags').value = d.tags || '';
+                    document.getElementById('m_maDiaDiem').value = d.maDiaDiem || '';
+                    document.getElementById('m_maLoaiSK').value = d.maLoaiSK || '';
+                    document.getElementById('m_tenLoaiSK').value = d.tenLoaiSK || '';
+                    document.getElementById('m_maNV').value = d.maNV || '';
+                    
+                    document.getElementById('m_thoiGianBatDau').value = formatForDateTimeLocal(d.thoiGianBatDau);
+                    document.getElementById('m_thoiGianKetThuc').value = formatForDateTimeLocal(d.thoiGianKetThuc);
+                    document.getElementById('m_thoiGianMoBan').value = formatForDateTimeLocal(d.thoiGianMoBan);
+                    document.getElementById('m_thoiGianDongBan').value = formatForDateTimeLocal(d.thoiGianDongBan);
+
+                    modal.classList.add('open');
+                })
+                .catch(() => alert('Không thể tải dữ liệu sự kiện!'));
+        }
+
+        function closeModal() {
+            modal.classList.remove('open');
+            loaiSKSuggestions.classList.remove('open');
+        }
+
+        function huySuKien(maSK) {
+            if (!confirm('Bạn có chắc muốn hủy sự kiện ' + maSK + '?')) return;
+            fetch('/sukien/xoa/' + maSK, { method: 'POST' })
+                .then(() => location.reload())
+                .catch(() => alert('Không thể hủy sự kiện!'));
+        }
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
+
+        // --- STAGE SETUP LOGIC ---
+        const stageModal = document.getElementById('stageModal');
+        let zoneCounter = 0;
+
+        function moModalSanKhau(maSK) {
+            document.getElementById('s_maSK').value = maSK;
+            document.getElementById('zoneList').innerHTML = '';
+            document.getElementById('stagePreviewMap').innerHTML = '<p style="color:#94a3b8; font-size:13px; margin-top:50px;">Bấm "Cập nhật xem trước" để xem lưới ghế</p>';
+            zoneCounter = 0;
+            
+            // Lấy data cũ nếu có
+            fetch('/sukien/api/' + maSK + '/so-do-ghe')
+                .then(r => r.json())
+                .then(d => {
+                    if (d.areas && d.areas.length > 0) {
+                        d.areas.forEach(area => {
+                            addZoneForm(
+                                area.tenKhuVuc,
+                                area.giaVe,
+                                (area.rows || []).length,
+                                getMaxSeatCount(area),
+                                area.mauSacHienThi,
+                                area.soVeToiDaPerKH || 4
+                            );
+                        });
+                        renderSeatMapPreview(d);
+                    } else {
+                        // Thêm default
+                        addZoneForm('VIP', 1000000, 3, 10, '#ef4444', 4);
+                        addZoneForm('Standard', 500000, 5, 15, '#3b82f6', 4);
+                        previewStage();
+                    }
+                    stageModal.classList.add('open');
+                })
+                .catch(() => alert('Lỗi lấy thông tin sơ đồ!'));
+        }
+
+        function closeStageModal() {
+            stageModal.classList.remove('open');
+        }
+
+        function addZoneForm(name = '', price = 0, rows = 0, cols = 0, color = '#3b82f6', maxTickets = 4) {
+            const html = `
+                <div class="zone-card" id="zone_card_${zoneCounter}" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #fff;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <input type="text" class="z-name" placeholder="Tên khu (vd: VIP)" value="${name}" style="flex:1; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: bold;">
+                        <input type="color" class="z-color" value="${color}" style="margin-left: 10px; border:none; width: 30px; height: 30px; cursor:pointer; background:none;">
+                        <button type="button" onclick="document.getElementById('zone_card_${zoneCounter}').remove()" style="margin-left:10px; background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <div style="display:flex; gap: 10px;">
+                        <div style="flex: 1.5;">
+                            <label style="font-size:11px; color:#64748b;">Giá vé (VNĐ)</label>
+                            <input type="number" class="z-price" value="${price}" style="width:100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size:11px; color:#64748b;">Số hàng</label>
+                            <input type="number" class="z-rows" value="${rows}" min="1" max="50" style="width:100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size:11px; color:#64748b;">Ghế/hàng</label>
+                            <input type="number" class="z-cols" value="${cols}" min="1" max="100" style="width:100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        </div>
+                        <div style="flex: 1.2;">
+                            <label style="font-size:11px; color:#64748b;">Vé tối đa/KH</label>
+                            <input type="number" class="z-max-tickets" value="${maxTickets}" min="1" max="100" style="width:100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('zoneList').insertAdjacentHTML('beforeend', html);
+            zoneCounter++;
+        }
+
+        function getMaxSeatCount(area) {
+            return (area.rows || []).reduce((max, row) => Math.max(max, (row.seats || []).length), 0);
+        }
+
+        function formatMoney(value) {
+            return new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' ₫';
+        }
+
+        function seatStatusClass(status) {
+            if (status === 'Trống') return 'empty available';
+            if (status === 'Đang chọn') return 'holding';
+            if (status === 'Bảo trì') return 'maintenance';
+            return 'sold';
+        }
+
+        function renderSeatMapPreview(seatMap) {
+            const preview = document.getElementById('stagePreviewMap');
+            preview.innerHTML = '';
+
+            const areas = Array.isArray(seatMap.areas) ? seatMap.areas : [];
+            if (areas.length === 0) {
+                preview.innerHTML = '<p style="color:#94a3b8; font-size:13px; margin-top:50px;">Chưa có khu vực nào.</p>';
+                return;
+            }
+
+            areas.forEach(area => {
+                const areaEl = document.createElement('section');
+                areaEl.className = 'seat-area';
+
+                const header = document.createElement('div');
+                header.className = 'seat-area-header';
+                header.innerHTML = `
+                    <div>
+                        <strong>${area.tenKhuVuc || 'Khu vực'}</strong>
+                        <span>${formatMoney(area.giaVe)}</span>
+                    </div>
+                    <small>${getMaxSeatCount(area)} ghế/hàng</small>
+                `;
+                areaEl.appendChild(header);
+
+                (area.rows || []).forEach(row => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'seat-row';
+
+                    const label = document.createElement('div');
+                    label.className = 'seat-row-label';
+                    label.textContent = row.hangGhe || '';
+                    rowDiv.appendChild(label);
+
+                    const seatsWrap = document.createElement('div');
+                    seatsWrap.className = 'seat-row-seats';
+
+                    (row.seats || []).forEach(seat => {
+                        const seatEl = document.createElement('div');
+                        seatEl.className = 'seat-cell ' + seatStatusClass(seat.trangThaiGhe);
+                        seatEl.textContent = seat.tenGhe || '';
+                        seatEl.title = `${seat.tenGhe || ''} - ${area.tenKhuVuc || ''} - ${seat.trangThaiGhe || 'Trống'}`;
+                        if (seat.trangThaiGhe === 'Trống') {
+                            seatEl.style.backgroundColor = area.mauSacHienThi || '#3b82f6';
+                        }
+                        seatsWrap.appendChild(seatEl);
+                    });
+
+                    rowDiv.appendChild(seatsWrap);
+                    areaEl.appendChild(rowDiv);
+                });
+
+                preview.appendChild(areaEl);
+            });
+        }
+
+        function rowName(index) {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const base = letters[index % letters.length];
+            return index >= letters.length ? base + Math.floor(index / letters.length) : base;
+        }
+
+        function previewStage() {
+            const cards = document.querySelectorAll('.zone-card');
+            if(cards.length === 0) {
+                document.getElementById('stagePreviewMap').innerHTML = '<p style="color:#94a3b8; font-size:13px; margin-top:50px;">Chưa có khu vực nào.</p>';
+                return;
+            }
+
+            const seatMap = {
+                maSK: document.getElementById('s_maSK').value,
+                tenSK: '',
+                areas: []
+            };
+
+            cards.forEach(card => {
+                const name = card.querySelector('.z-name').value;
+                const rows = parseInt(card.querySelector('.z-rows').value) || 0;
+                const cols = parseInt(card.querySelector('.z-cols').value) || 0;
+                const color = card.querySelector('.z-color').value;
+                const price = parseFloat(card.querySelector('.z-price').value) || 0;
+                const maxTickets = parseInt(card.querySelector('.z-max-tickets').value) || 4;
+
+                if (rows > 0 && cols > 0) {
+                    const area = {
+                        maKhuVuc: name,
+                        tenKhuVuc: name,
+                        mauSacHienThi: color,
+                        giaVe: price,
+                        soVeToiDaPerKH: maxTickets,
+                        rows: []
+                    };
+                    for (let r = 0; r < rows; r++) {
+                        const hangGhe = rowName(r);
+                        const row = { hangGhe: hangGhe, seats: [] };
+                        for (let c = 1; c <= cols; c++) {
+                            const tenGhe = hangGhe + String(c).padStart(2, '0');
+                            row.seats.push({
+                                maGhe: `${name}-${tenGhe}`,
+                                tenGhe: tenGhe,
+                                hangGhe: hangGhe,
+                                cotGhe: c,
+                                trangThaiGhe: 'Trống',
+                                maKhuVuc: name
+                            });
+                        }
+                        area.rows.push(row);
+                    }
+                    seatMap.areas.push(area);
+                }
+            });
+
+            renderSeatMapPreview(seatMap);
+        }
+
+        function saveStageConfig() {
+            const maSK = document.getElementById('s_maSK').value;
+            const cards = document.querySelectorAll('.zone-card');
+            
+            const payload = {
+                danhSachKhuVuc: []
+            };
+
+            cards.forEach(card => {
+                payload.danhSachKhuVuc.push({
+                    tenKhuVuc: card.querySelector('.z-name').value,
+                    mauSacHienThi: card.querySelector('.z-color').value,
+                    giaVe: parseFloat(card.querySelector('.z-price').value) || 0,
+                    soHang: parseInt(card.querySelector('.z-rows').value) || 0,
+                    soGheMoiHang: parseInt(card.querySelector('.z-cols').value) || 0,
+                    soVeToiDaPerKH: parseInt(card.querySelector('.z-max-tickets').value) || 4
+                });
+            });
+
+            if (!confirm('Bạn có chắc muốn lưu sơ đồ mới? Sơ đồ cũ và các vé cũ (nếu có) sẽ bị xóa!')) return;
+
+            fetch('/sukien/api/' + maSK + '/thiet-lap-san-khau', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) {
+                    alert('Lỗi: ' + d.error);
+                } else {
+                    alert(d.message);
+                    location.reload();
+                }
+            })
+            .catch(() => alert('Lỗi kết nối tới server!'));
+        }
+
+        stageModal.addEventListener('click', function (e) {
+            if (e.target === this) closeStageModal();
+        });
+    </script>
+</div>
+</body>
+</html>

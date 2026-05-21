@@ -1,0 +1,8 @@
+CREATE OR REPLACE FUNCTION fn_SinhMaQRDuyNhat (
+    p_MaVe IN VARCHAR2,
+    p_MaSK IN VARCHAR2
+) RETURN VARCHAR2 IS
+BEGIN
+    RETURN RAWTOHEX(SYS_GUID()) || '_' || p_MaVe || '_' || p_MaSK;
+END fn_SinhMaQRDuyNhat;
+/

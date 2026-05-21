@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Vai trò - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/QLTK.css}">
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content" class="admin-page">
+    <main class="main-content">
+        <header class="main-header">
+            <h2><i class="fa-solid fa-user-shield" style="margin-right:8px;color:#3b82f6;"></i>
+                <span th:text="${mode == 'create' ? 'Thêm Vai Trò' : 'Sửa Vai Trò'}">Vai trò</span>
+            </h2>
+        </header>
+
+        <div class="content-area">
+            <div class="admin-tabs">
+                <a th:href="@{/taikhoan}" class="admin-tab">Tài khoản</a>
+                <a th:href="@{/taikhoan/vai-tro}" class="admin-tab active">Vai trò</a>
+            </div>
+
+            <div th:if="${thanhCong}" class="alert-box alert-success" style="display:block;">
+                <i class="fa-solid fa-circle-check"></i> <span th:text="${thanhCong}"></span>
+            </div>
+            <div th:if="${loi}" class="alert-box alert-warning" style="display:block;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <span th:text="${loi}"></span>
+            </div>
+
+            <div class="role-layout">
+                <section class="role-panel">
+                    <form th:action="${mode == 'create'} ? @{/taikhoan/vai-tro/them} : @{/taikhoan/vai-tro/{id}/sua(id=${vaiTro.maVaiTro})}"
+                          method="post" th:object="${vaiTro}">
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label>Mã vai trò <span style="color:red;">*</span></label>
+                                <input type="text" th:field="*{maVaiTro}" th:readonly="${mode != 'create'}" placeholder="VD: TEST_ROLE" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Tên vai trò <span style="color:red;">*</span></label>
+                                <input type="text" th:field="*{tenVaiTro}" placeholder="Tên hiển thị" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Mô tả</label>
+                            <input type="text" th:field="*{moTa}" placeholder="Mô tả ngắn về vai trò">
+                        </div>
+                        <div class="modal-footer inline-footer">
+                            <a th:href="@{/taikhoan/vai-tro}" class="btn-cancel text-decoration-none">Quay lại</a>
+                            <button type="submit" class="btn-save">Lưu vai trò</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="role-panel" th:if="${mode == 'edit'}">
+                    <h3 class="role-panel-title">Người dùng thuộc vai trò <span th:text="${roleDisplayName}">Vai trò</span></h3>
+                    <form class="assign-role-form" th:action="@{/taikhoan/vai-tro/{id}/gan-nguoi-dung(id=${vaiTro.maVaiTro})}" method="post">
+                        <select name="maND" required>
+                            <option value="">-- Chọn người dùng --</option>
+                            <option th:each="user : ${tatCaNguoiDung}" th:value="${user.maND}"
+                                    th:text="${user.tenTaiKhoan + ' (' + user.maND + ')'}"></option>
+                        </select>
+                        <button type="submit" class="btn-save">Gán vai trò</button>
+                    </form>
+
+                    <div class="assigned-users">
+                        <div th:each="user : ${nguoiDungCoVaiTro}" class="assigned-user-row">
+                            <div>
+                                <strong th:text="${user.tenTaiKhoan}">username</strong>
+                                <small th:text="${user.email != null ? user.email : user.maND}">email</small>
+                            </div>
+                            <form th:action="@{/taikhoan/vai-tro/{id}/go-nguoi-dung(id=${vaiTro.maVaiTro})}" method="post"
+                                  onsubmit="return confirm('Gỡ vai trò khỏi người dùng này?');">
+                                <input type="hidden" name="maND" th:value="${user.maND}">
+                                <button type="submit" class="btn-action btn-lock" title="Gỡ vai trò">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <p th:if="${nguoiDungCoVaiTro == null or #lists.isEmpty(nguoiDungCoVaiTro)}" style="color:#64748b;margin:0;">Chưa có người dùng nào được gán vai trò này.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

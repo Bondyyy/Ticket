@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/base}">
+
+<head>
+    <title>Đăng ký tài khoản</title>
+    <th:block layout:fragment="page-css">
+        <link th:href="@{/css/pages/auth.css}" rel="stylesheet">
+    </th:block>
+</head>
+
+<main layout:fragment="content">
+    <div class="login-wrapper">
+        <div class="login-card" style="max-width: 500px;">
+
+            <div class="brand-logo">
+                <div class="logo-icon"><i class="bi bi-ticket-perforated-fill"></i></div>
+                <span class="logo-text">Dề Dê Tickets</span>
+            </div>
+
+            <h1 class="login-title" th:text="${otpStep == true ? 'Xác thực OTP' : 'Đăng ký tài khoản'}">Đăng ký tài khoản</h1>
+            <p class="login-subtitle" th:if="${otpStep != true}">Tham gia ngay để trải nghiệm săn vé</p>
+            <p class="login-subtitle" th:if="${otpStep == true}">
+                Nhập mã OTP 6 số đã gửi tới <b th:text="${pendingEmail}">email@example.com</b>
+            </p>
+
+            <div class="alert-custom" th:if="${error}" th:text="${error}">
+                Lỗi đăng ký.
+            </div>
+            <div class="alert-custom alert-success-custom" th:if="${success}" th:text="${success}">
+                Đã gửi OTP.
+            </div>
+
+            <form th:if="${otpStep != true}" th:action="@{/dang-ky/send-otp}" method="post" id="registerForm" novalidate>
+                <div class="mb-3">
+                    <label class="form-label" for="tenTaiKhoan">Tên đăng nhập <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input class="dd-input" type="text" id="tenTaiKhoan" name="tenTaiKhoan"
+                            placeholder="Nhập tên đăng nhập..." th:value="${tenTaiKhoan}" required>
+                        <i class="bi bi-person input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="email">Email <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input class="dd-input" type="email" id="email" name="email" placeholder="example@dede.com"
+                            th:value="${email}" required>
+                        <i class="bi bi-envelope input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="sdt">Số điện thoại <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input class="dd-input" type="text" id="sdt" name="sdt" placeholder="0912345678"
+                            th:value="${sdt}" required>
+                        <i class="bi bi-telephone input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="matKhau">Mật khẩu <span class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input class="dd-input has-icon" type="password" id="matKhau" name="matKhau"
+                            placeholder="Nhập mật khẩu..." required>
+                        <i class="bi bi-eye input-icon" id="togglePassword"
+                            onclick="togglePwd('matKhau', 'togglePassword')"></i>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label" for="xacNhanMatKhau">Xác nhận mật khẩu <span
+                            class="text-danger">*</span></label>
+                    <div class="input-wrapper">
+                        <input class="dd-input has-icon" type="password" id="xacNhanMatKhau" name="xacNhanMatKhau"
+                            placeholder="Nhập lại mật khẩu..." required>
+                        <i class="bi bi-eye input-icon" id="toggleConfirmPassword"
+                            onclick="togglePwd('xacNhanMatKhau', 'toggleConfirmPassword')"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnRegister">
+                    <span id="btnText">Gửi OTP</span>
+                    <span id="btnSpinner" class="d-none">
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang xử lý...
+                    </span>
+                </button>
+            </form>
+
+            <div th:if="${otpStep == true}">
+                <form th:action="@{/dang-ky/verify}" method="post" id="otpForm" novalidate>
+                    <div class="mb-4">
+                        <label class="form-label" for="otp">Mã OTP <span class="text-danger">*</span></label>
+                        <div class="input-wrapper">
+                            <input class="dd-input otp-input" type="text" id="otp" name="otp"
+                                   placeholder="Nhập 6 số OTP" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required>
+                            <i class="bi bi-shield-check input-icon"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-login auth-btn" id="btnVerifyOtp">
+                        Xác nhận đăng ký
+                    </button>
+                </form>
+
+                <form th:action="@{/dang-ky/resend-otp}" method="post" class="resend-form">
+                    <button type="submit" class="btn-resend-otp">Gửi lại OTP</button>
+                </form>
+            </div>
+
+            <div class="divider">hoặc</div>
+            <p class="register-prompt">
+                Đã có tài khoản?
+                <a th:href="@{/dang-nhap}">Đăng nhập ngay</a>
+            </p>
+
+        </div>
+    </div>
+</main>
+
+<th:block layout:fragment="page-js">
+    <script>
+        function togglePwd(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', function (e) {
+            const password = document.getElementById('matKhau').value;
+            const confirmPassword = document.getElementById('xacNhanMatKhau').value;
+
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert("Mật khẩu xác nhận không khớp!");
+                return;
+            }
+
+            const inputs = this.querySelectorAll('input[required]');
+            let valid = true;
+            inputs.forEach(input => {
+                if (!input.value.trim()) valid = false;
+            });
+
+            if (!valid) return;
+
+            document.getElementById('btnText').classList.add('d-none');
+            document.getElementById('btnSpinner').classList.remove('d-none');
+            document.getElementById('btnRegister').disabled = true;
+            });
+        }
+
+        const otpInput = document.getElementById('otp');
+        if (otpInput) {
+            otpInput.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 6);
+            });
+        }
+    </script>
+</th:block>
+
+</html>

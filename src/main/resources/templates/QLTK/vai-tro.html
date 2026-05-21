@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản Lý Vai Trò - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <link rel="stylesheet" th:href="@{/css/pages/QLTK.css}">
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content" class="admin-page">
+    <main class="main-content">
+        <header class="main-header">
+            <h2><i class="fa-solid fa-user-shield" style="margin-right:8px;color:#3b82f6;"></i>Quản Lý Vai Trò</h2>
+            <div class="header-right">
+                <span>Hôm nay: <b id="currentDate"></b></span>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="admin-tabs">
+                <a th:href="@{/taikhoan}" class="admin-tab">Tài khoản</a>
+                <a th:href="@{/taikhoan/vai-tro}" class="admin-tab active">Vai trò</a>
+            </div>
+
+            <div th:if="${thanhCong}" class="alert-box alert-success" style="display:block;">
+                <i class="fa-solid fa-circle-check"></i> <span th:text="${thanhCong}"></span>
+            </div>
+            <div th:if="${loi}" class="alert-box alert-warning" style="display:block;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <span th:text="${loi}"></span>
+            </div>
+
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <strong style="color:#1e3a8a;">Danh sách vai trò hệ thống</strong>
+                </div>
+                <a class="btn-add text-decoration-none" th:href="@{/taikhoan/vai-tro/them}">
+                    <i class="fa-solid fa-plus"></i> Thêm Vai Trò
+                </a>
+            </div>
+
+            <div class="table-card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã vai trò</th>
+                                <th>Tên vai trò</th>
+                                <th>Mô tả</th>
+                                <th>Số người dùng</th>
+                                <th>Loại</th>
+                                <th style="text-align:center;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="role : ${vaiTroList}">
+                                <td><b th:text="${role.maVaiTro}">ADMIN</b></td>
+                                <td th:text="${role.tenVaiTro}">Quản trị viên</td>
+                                <td th:text="${role.moTa != null ? role.moTa : '-'}">-</td>
+                                <td th:text="${role.soNguoiDung}">0</td>
+                                <td>
+                                    <span class="badge badge-active" th:if="${role.systemRole}">Hệ thống</span>
+                                    <span class="badge badge-pending" th:if="${role.legacyRole}">Legacy</span>
+                                    <span class="badge badge-role" th:if="${!role.systemRole and !role.legacyRole}">Tùy chỉnh</span>
+                                </td>
+                                <td style="text-align:center;">
+                                    <a class="btn-action btn-edit" th:href="@{/taikhoan/vai-tro/{id}/sua(id=${role.maVaiTro})}" title="Sửa/Chi tiết">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <form th:if="${!role.systemRole}" th:action="@{/taikhoan/vai-tro/{id}/xoa(id=${role.maVaiTro})}" method="post"
+                                          style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn xóa vai trò này?');">
+                                        <button type="submit" class="btn-action btn-lock" title="Xóa">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${vaiTroList == null or #lists.isEmpty(vaiTroList)}">
+                                <td colspan="6" style="text-align:center;padding:24px;color:#93c5fd;">Chưa có vai trò.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
+    </script>
+</div>
+</body>
+</html>

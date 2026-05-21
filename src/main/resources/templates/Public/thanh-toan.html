@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Thanh toán - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+    <style>
+        .checkout-container { max-width: 800px; margin: 0 auto; }
+        .checkout-card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; }
+        .checkout-header { background: #1e3a8a; color: white; padding: 20px 30px; text-align: center; }
+        .checkout-header h2 { margin: 0; font-family: "Be Vietnam Pro", "Inter", sans-serif; font-weight: 800; }
+        .timer-box { font-size: 24px; font-weight: bold; color: #fbbf24; margin-top: 10px; }
+        
+        .checkout-body { padding: 30px; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; }
+        .info-label { color: #64748b; font-weight: bold; }
+        .info-value { color: #1e293b; font-weight: bold; text-align: right; }
+        
+        .total-row { display: flex; justify-content: space-between; padding: 20px 0; font-size: 20px; font-weight: bold; border-top: 2px solid #e2e8f0; margin-top: 20px; }
+        .total-value { color: #ef4444; font-size: 24px; }
+        
+        .action-box { display: flex; gap: 15px; margin-top: 30px; }
+        .btn-pay { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; color: white; text-align: center; }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-fail { background: #ef4444; }
+        .btn-fail:hover { background: #dc2626; }
+        .btn-cancel { background: #64748b; }
+        .btn-cancel:hover { background: #475569; }
+        
+    </style>
+    </th:block>
+</head>
+<body>
+<main layout:fragment="content">
+    <div class="checkout-container">
+        <div class="checkout-card">
+            <div class="checkout-header">
+                <h2>Hoàn Tất Thanh Toán</h2>
+                <div class="timer-box">Thời gian giữ ghế còn: <span id="countdown">10:00</span></div>
+            </div>
+            
+            <div class="checkout-body">
+                <h3 style="margin-top:0; color: #1e3a8a; font-family: 'Be Vietnam Pro', 'Inter', sans-serif; font-weight: 800;">Thông tin đơn hàng</h3>
+                
+                <div class="info-row">
+                    <span class="info-label">Mã đơn hàng:</span>
+                    <span class="info-value" th:text="${orderId}">DH-12345678</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Sự kiện:</span>
+                    <span class="info-value" th:text="${suKien.tenSK}">Tên sự kiện</span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Ghế đã giữ:</span>
+                    <span class="info-value">
+                        <span th:each="ghe, iterStat : ${gheList}">
+                            <span th:text="${ghe.tenGhe}"></span><span th:if="${!iterStat.last}">, </span>
+                        </span>
+                    </span>
+                </div>
+                
+                <div class="info-row">
+                    <span class="info-label">Khách hàng:</span>
+                    <span class="info-value">
+                        <span th:if="${session.maKH != null}">
+                            <span th:text="${session.tenTaiKhoan ?: 'Khách hàng'}">Khách hàng</span>
+                            <span th:text="|(${session.maKH})|">(KH)</span>
+                        </span>
+                        <span th:if="${session.maKH == null}">
+                            <span th:if="${session.tenTaiKhoan != null}" th:text="${session.tenTaiKhoan}">Khách hàng</span>
+                            <span th:if="${session.tenTaiKhoan != null}"> - </span>
+                            <span>Chưa xác định khách hàng</span>
+                        </span>
+                    </span>
+                </div>
+                
+                <!-- Thống kê số lần thanh toán và lỗi -->
+                <div id="payment-stats-card" style="background: #fffbeb; border: 1px solid #fef3c7; padding: 20px; border-radius: 12px; margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; color: #b45309; font-size: 16px;">
+                        <span><i class="fa-solid fa-rotate-right"></i> Số lần đã thử thanh toán: <span id="attempt-made" th:text="${lanDaThu}">0</span> / 3</span>
+                        <span>Số lần còn lại: <span id="attempt-left" style="color: #ef4444;" th:text="${lanConLai}">3</span></span>
+                    </div>
+                    <div id="error-message-box" th:style="${latestError != null && !latestError.isEmpty()} ? 'display:block' : 'display:none'" style="background: #fef2f2; border: 1px solid #fee2e2; padding: 12px; border-radius: 8px; color: #b91c1c; font-size: 14px; font-weight: 500; margin-top: 8px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i> <strong>Lỗi gần nhất:</strong> <span id="error-text" th:text="${latestError}">Không có</span>
+                    </div>
+                </div>
+
+                <!-- Mô phỏng thanh toán -->
+                <div style="background: #eff6ff; border: 1px dashed #3b82f6; padding: 20px; border-radius: 12px; margin-top: 25px; text-align: center;">
+                    <p style="margin: 0 0 15px; color: #1e3a8a; font-weight: bold; font-size: 15px;">[MÔ PHỎNG CỔNG THANH TOÁN]</p>
+                    <div class="action-box" style="margin-top: 0;">
+                        <button id="btn-success" class="btn-pay btn-success" onclick="processPayment(true)">
+                            <i class="fa-solid fa-check-circle"></i> Giả lập Thanh Toán THÀNH CÔNG
+                        </button>
+                        <button id="btn-fail" class="btn-pay btn-fail" onclick="processPayment(false)">
+                            <i class="fa-solid fa-times-circle"></i> Giả lập Thanh Toán THẤT BẠI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hủy đơn chủ động -->
+                <div style="margin-top: 20px; text-align: center;">
+                    <button id="btn-cancel" class="btn-pay btn-cancel" style="max-width: 250px; margin: 0 auto; display: block;" onclick="cancelOrderActive()">
+                        <i class="fa-solid fa-ban"></i> Hủy đơn hàng & Nhả ghế
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <input type="hidden" id="orderIdParam" th:value="${orderId}">
+
+    <script th:inline="javascript">
+        // Đọc thời gian còn lại động từ máy chủ
+        let timeLeft = /*[[${remainingSeconds}]]*/ 600;
+        const orderId = /*[[${orderId}]]*/ '';
+        const timerEl = document.getElementById('countdown');
+        
+        let isProcessing = false;
+        const btnSuccess = document.getElementById('btn-success');
+        const btnFail = document.getElementById('btn-fail');
+        const btnCancel = document.getElementById('btn-cancel');
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Khởi tạo text ban đầu
+        timerEl.textContent = formatTime(timeLeft);
+        
+        const countdownTimer = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                clearInterval(countdownTimer);
+                timerEl.textContent = "00:00";
+                alert("Đã hết thời gian giữ ghế. Đơn hàng đã bị hủy và ghế đã được trả lại.");
+                cancelOrderOnTimeout();
+            } else {
+                timerEl.textContent = formatTime(timeLeft);
+            }
+        }, 1000);
+        
+        function processPayment(isSuccess) {
+            if (isProcessing) return; // Chống click đúp
+            
+            isProcessing = true;
+            btnSuccess.disabled = true;
+            btnFail.disabled = true;
+            btnCancel.disabled = true;
+            
+            const payload = {
+                orderId: orderId,
+                simulateResult: isSuccess ? 'Thành công' : 'Thất bại',
+                paymentMethod: 'Chuyển khoản'
+            };
+            
+            fetch('/api/booking/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.error) {
+                    alert("Lỗi hệ thống: " + d.error);
+                    window.location.reload();
+                    return;
+                }
+                
+                if (d.success) {
+                    clearInterval(countdownTimer);
+                    alert(d.message || "Thanh toán thành công!");
+                    window.location.href = d.redirect || '/ve-cua-toi';
+                } else {
+                    alert(d.message);
+                    if (d.canRetry) {
+                        const remaining = d.remainingAttempts;
+                        const made = 3 - remaining;
+                        
+                        document.getElementById('attempt-made').textContent = made;
+                        document.getElementById('attempt-left').textContent = remaining;
+                        
+                        document.getElementById('error-message-box').style.display = 'block';
+                        document.getElementById('error-text').textContent = d.message;
+                        
+                        // Kích hoạt lại nút bấm
+                        isProcessing = false;
+                        btnSuccess.disabled = false;
+                        btnFail.disabled = false;
+                        btnCancel.disabled = false;
+                    } else {
+                        // Hết lượt thử
+                        clearInterval(countdownTimer);
+                        window.location.href = d.redirect || '/';
+                    }
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                alert('Lỗi kết nối tới server!');
+                isProcessing = false;
+                btnSuccess.disabled = false;
+                btnFail.disabled = false;
+                btnCancel.disabled = false;
+            });
+        }
+
+        function cancelOrderOnTimeout() {
+            const payload = { orderId: orderId };
+            fetch('/api/booking/cancel-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                window.location.href = '/';
+            })
+            .catch(() => {
+                window.location.href = '/';
+            });
+        }
+
+        function cancelOrderActive() {
+            if (isProcessing) return;
+            if (confirm("Bạn có chắc chắn muốn hủy đơn hàng này và giải phóng các ghế đã chọn?")) {
+                clearInterval(countdownTimer);
+                isProcessing = true;
+                btnSuccess.disabled = true;
+                btnFail.disabled = true;
+                btnCancel.disabled = true;
+                
+                const payload = { orderId: orderId };
+                fetch('/api/booking/cancel-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(d => {
+                    alert(d.message || "Đã hủy đơn hàng thành công.");
+                    window.location.href = d.redirect || '/';
+                })
+                .catch(() => {
+                    window.location.href = '/';
+                });
+            }
+        }
+    </script>
+</main>
+</body>
+</html>

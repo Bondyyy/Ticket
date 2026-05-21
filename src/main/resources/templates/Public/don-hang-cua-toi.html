@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <meta charset="UTF-8">
+    <title>Đơn hàng của tôi - Dề Dê Tickets</title>
+    <th:block layout:fragment="page-css">
+        <style>
+            .orders-container {
+                max-width: 1200px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .glass-header {
+                background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(59, 130, 246, 0.05));
+                backdrop-filter: blur(10px);
+                border: 1px solid var(--dd-border);
+                border-radius: var(--dd-radius-lg);
+                padding: 30px;
+                margin-bottom: 40px;
+                box-shadow: 0 8px 32px rgba(31, 38, 135, 0.02);
+            }
+            .glass-header h1 {
+                font-family: "Be Vietnam Pro", "Inter", sans-serif;
+                font-size: 32px;
+                color: var(--dd-text);
+                margin: 0 0 10px;
+            }
+            .order-group-card {
+                background: var(--dd-surface);
+                border: 1px solid var(--dd-border);
+                border-radius: var(--dd-radius-lg);
+                padding: 24px;
+                margin-bottom: 25px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+                transition: all 0.2s ease-in-out;
+            }
+            .order-group-card:hover {
+                border-color: rgba(79, 70, 229, 0.15);
+                box-shadow: 0 8px 25px rgba(79, 70, 229, 0.04);
+            }
+            .order-header-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 15px;
+                padding-bottom: 16px;
+                border-bottom: 1px dashed var(--dd-border);
+                margin-bottom: 20px;
+            }
+            .order-id-label {
+                font-family: "Be Vietnam Pro", "Inter", sans-serif;
+                font-size: 20px;
+                color: var(--dd-text);
+            }
+            .order-price {
+                font-size: 20px;
+                font-weight: 700;
+                color: #ef4444;
+            }
+            .sub-tickets-table {
+                background: white;
+                border: 1px solid var(--dd-border);
+                border-radius: var(--dd-radius);
+                overflow: hidden;
+            }
+            .sub-tickets-table table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 0;
+            }
+            .sub-tickets-table th {
+                background: var(--dd-surface2);
+                color: var(--dd-text);
+                font-weight: 600;
+                font-size: 13px;
+                padding: 12px 16px;
+                text-align: left;
+                border-bottom: 1px solid var(--dd-border);
+            }
+            .sub-tickets-table td {
+                padding: 14px 16px;
+                font-size: 14px;
+                color: var(--dd-text);
+                border-bottom: 1px solid var(--dd-border);
+            }
+            .sub-tickets-table tr:last-child td {
+                border-bottom: none;
+            }
+            .btn-table-action {
+                background: rgba(79, 70, 229, 0.08);
+                color: var(--dd-indigo);
+                border: none;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: 600;
+                text-decoration: none;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .btn-table-action:hover {
+                background: var(--dd-indigo);
+                color: white;
+            }
+            @media (max-width: 768px) {
+                .order-header-row {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .sub-tickets-table {
+                    overflow-x: auto;
+                }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <main layout:fragment="content">
+        <div class="orders-container">
+            <div class="glass-header animate__animated animate__fadeIn">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h1>Đơn Hàng Của Tôi</h1>
+                        <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i> Lịch sử giao dịch chi tiết và trạng thái đơn hàng của bạn.</p>
+                    </div>
+                    <a href="/" class="btn-dd-outline"><i class="bi bi-arrow-left me-1"></i> Quay lại trang chủ</a>
+                </div>
+            </div>
+
+            <!-- Danh sách đơn hàng -->
+            <div th:if="${orders != null and !orders.isEmpty()}">
+                <div class="order-group-card animate__animated animate__fadeInUp" th:each="order : ${orders}">
+                    <!-- Header của từng đơn hàng -->
+                    <div class="order-header-row">
+                        <div>
+                            <div class="order-id-label">
+                                <i class="bi bi-receipt me-1"></i> <span th:text="${order.maDonHang}">DH-12345678</span>
+                            </div>
+                            <div class="text-muted mt-1" style="font-size: 13px;">
+                                <i class="bi bi-calendar-check me-1"></i> Ngày đặt: 
+                                <span th:text="${order.thoiGianDat != null ? #dates.format(order.thoiGianDat, 'dd/MM/yyyy HH:mm') : 'Đang cập nhật'}">01/01/2026</span>
+                            </div>
+                        </div>
+
+                        <!-- Trạng thái và Tổng tiền -->
+                        <div class="text-md-end">
+                            <div class="mb-2">
+                                <span th:if="${order.trangThaiDonHang == 'Đã thanh toán'}" class="dd-badge dd-badge-success"><i class="bi bi-check2-circle me-1"></i>Đã thanh toán</span>
+                                <span th:if="${order.trangThaiDonHang == 'Chờ thanh toán'}" class="dd-badge dd-badge-warning"><i class="bi bi-hourglass-split me-1"></i>Chờ thanh toán</span>
+                                <span th:if="${order.trangThaiDonHang == 'Đã hủy'}" class="dd-badge dd-badge-danger"><i class="bi bi-x-circle me-1"></i>Đã hủy</span>
+                            </div>
+                            <div class="order-price" th:text="${#numbers.formatDecimal(order.thanhTien, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.000.000 VNĐ</div>
+                        </div>
+                    </div>
+
+                    <!-- Bảng chứa danh sách vé của đơn hàng này -->
+                    <div class="sub-tickets-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã vé</th>
+                                    <th>Tên sự kiện</th>
+                                    <th>Khu vực</th>
+                                    <th>Vị trí ghế</th>
+                                    <th>Giá vé</th>
+                                    <th>Trạng thái vé</th>
+                                    <th style="width: 130px; text-align: center;">Tùy chọn</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="tk : ${orderTicketsMap.get(order.maDonHang)}">
+                                    <td class="fw-semibold" th:text="${tk.maVe}">VE-XXXXXX</td>
+                                    <td th:text="${tk.tenSuKien}">Tên sự kiện</td>
+                                    <td th:text="${tk.tenKhuVuc}">VIP Zone</td>
+                                    <td class="fw-semibold text-primary" th:text="${tk.tenGhe}">Hàng B - Ghế 12</td>
+                                    <td th:text="${#numbers.formatDecimal(tk.giaVe, 0, 'COMMA', 0, 'POINT')} + ' đ'">500.000 đ</td>
+                                    <td>
+                                        <span th:if="${tk.trangThaiVe == 'Chưa sử dụng'}" class="text-success"><i class="bi bi-patch-check-fill me-1"></i>Chưa dùng</span>
+                                        <span th:if="${tk.trangThaiVe == 'Đã sử dụng'}" class="text-muted"><i class="bi bi-check-all me-1"></i>Đã dùng</span>
+                                        <span th:if="${tk.trangThaiVe == 'Đã hủy'}" class="text-danger"><i class="bi bi-x-circle me-1"></i>Đã hủy</span>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <a th:href="@{/ve-cua-toi/{maVe}(maVe=${tk.maVe})}" class="btn-table-action">
+                                            <i class="bi bi-eye"></i> Chi tiết
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${orderTicketsMap.get(order.maDonHang) == null or orderTicketsMap.get(order.maDonHang).isEmpty()}">
+                                    <td colspan="7" class="text-center text-muted py-3">
+                                        <i class="bi bi-ticket-perforated me-1"></i> Đơn hàng chưa phát hành vé hoặc đã bị hủy.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khi không có đơn hàng nào -->
+            <div th:if="${orders == null or orders.isEmpty()}" class="text-center py-5 glass-header animate__animated animate__fadeIn">
+                <i class="bi bi-receipt-cutoff text-muted" style="font-size: 60px;"></i>
+                <h3 class="mt-3" style="font-family: "Be Vietnam Pro", "Inter", sans-serif;">Lịch sử đơn hàng trống</h3>
+                <p class="text-muted">Bạn chưa thực hiện bất kỳ giao dịch đặt vé nào.</p>
+                <a href="/" class="btn-dd-primary mt-3"><i class="bi bi-shop me-1"></i> Mua vé ngay</a>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
