@@ -158,12 +158,11 @@ public class BaoCaoService {
 
     private String findBestSellerEvent(String maSK, Timestamp tuNgay, Timestamp denNgay) {
         StringBuilder sql = new StringBuilder()
-                .append("SELECT * FROM ( ")
-                .append("  SELECT sk.TenSK, COUNT(v.MaVe) AS SoldCount ")
-                .append("  FROM VE v ")
-                .append("  JOIN DONHANG dh ON v.MaDonHang = dh.MaDonHang ")
-                .append("  JOIN SUKIEN sk ON v.MaSK = sk.MaSK ")
-                .append("  WHERE dh.TrangThaiDonHang = ? ");
+                .append("SELECT sk.TenSK, COUNT(v.MaVe) AS SoldCount ")
+                .append("FROM VE v ")
+                .append("JOIN DONHANG dh ON v.MaDonHang = dh.MaDonHang ")
+                .append("JOIN SUKIEN sk ON v.MaSK = sk.MaSK ")
+                .append("WHERE dh.TrangThaiDonHang = ? ");
         List<Object> params = new ArrayList<>();
         params.add(TRANG_THAI_DA_THANH_TOAN);
 
@@ -173,9 +172,9 @@ public class BaoCaoService {
         }
         appendOrderDateFilter(sql, params, "dh", tuNgay, denNgay);
 
-        sql.append("  GROUP BY sk.TenSK ")
-                .append("  ORDER BY SoldCount DESC ")
-                .append(") WHERE ROWNUM <= 1");
+        sql.append("GROUP BY sk.TenSK ")
+                .append("ORDER BY SoldCount DESC ")
+                .append("LIMIT 1");
 
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql.toString(), params.toArray());
         if (result.isEmpty() || result.get(0).get("TENSK") == null) {
@@ -283,13 +282,12 @@ public class BaoCaoService {
      */
     public List<HanhViKhachHangDTO> getRecentHanhViKhachHang(String maSK, Timestamp tuNgay, Timestamp denNgay) {
         StringBuilder sql = new StringBuilder()
-                .append("SELECT * FROM ( ")
-                .append("  SELECT l.MaLog, l.LoaiHanhDong, l.MaSK, sk.TenSK, l.ThoiGian, l.MaKH, nd.TenTaiKhoan, l.ThietBi ")
-                .append("  FROM LOG_HANH_VI l ")
-                .append("  LEFT JOIN SUKIEN sk ON l.MaSK = sk.MaSK ")
-                .append("  LEFT JOIN KHACHHANG kh ON l.MaKH = kh.MaKH ")
-                .append("  LEFT JOIN NGUOIDUNG nd ON kh.MaND = nd.MaND ")
-                .append("  WHERE l.LoaiHanhDong IN ('XEM_SK', 'CLICK_DAT_VE', 'BO_GIO_HANG') ");
+                .append("SELECT l.MaLog, l.LoaiHanhDong, l.MaSK, sk.TenSK, l.ThoiGian, l.MaKH, nd.TenTaiKhoan, l.ThietBi ")
+                .append("FROM LOG_HANH_VI l ")
+                .append("LEFT JOIN SUKIEN sk ON l.MaSK = sk.MaSK ")
+                .append("LEFT JOIN KHACHHANG kh ON l.MaKH = kh.MaKH ")
+                .append("LEFT JOIN NGUOIDUNG nd ON kh.MaND = nd.MaND ")
+                .append("WHERE l.LoaiHanhDong IN ('XEM_SK', 'CLICK_DAT_VE', 'BO_GIO_HANG') ");
         List<Object> params = new ArrayList<>();
 
         if (normalize(maSK) != null) {
@@ -305,8 +303,8 @@ public class BaoCaoService {
             params.add(denNgay);
         }
 
-        sql.append("  ORDER BY l.ThoiGian DESC ")
-                .append(") WHERE ROWNUM <= 50");
+        sql.append("ORDER BY l.ThoiGian DESC ")
+                .append("LIMIT 50");
 
         List<Map<String, Object>> queryResult = jdbcTemplate.queryForList(sql.toString(), params.toArray());
         List<HanhViKhachHangDTO> logs = new ArrayList<>();

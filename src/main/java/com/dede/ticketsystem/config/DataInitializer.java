@@ -151,9 +151,9 @@ public class DataInitializer implements CommandLineRunner {
 
     private boolean tableExists(String tableName) {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM USER_TABLES WHERE TABLE_NAME = ?",
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND UPPER(table_name) = UPPER(?)",
                 Integer.class,
-                tableName.toUpperCase()
+                tableName
         );
         return count != null && count > 0;
     }
@@ -190,19 +190,26 @@ public class DataInitializer implements CommandLineRunner {
             ensureLoaiSuKien(null, "Biểu diễn nghệ thuật", "Sự kiện biểu diễn nghệ thuật");
 
             // 3. SUKIEN
+            Timestamp eventStart = Timestamp.valueOf("2026-07-15 19:00:00");
+            Timestamp eventEnd = Timestamp.valueOf("2026-07-15 23:00:00");
+            Timestamp saleStart = Timestamp.valueOf("2026-05-01 10:00:00");
+            Timestamp saleEnd = Timestamp.valueOf("2026-07-14 23:59:59");
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+
             Integer countSK = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM SUKIEN WHERE MaSK = ?", Integer.class, sampleMaSK);
             if (countSK == null || countSK == 0) {
                 jdbcTemplate.update("INSERT INTO SUKIEN (MaSK, TenSK, MoTa, ThoiGianBatDau, ThoiGianKetThuc, ThoiGianMoBan, ThoiGianDongBan, TrangThaiSK, MaLoaiSK, MaDiaDiem, TongSoVe, SoVeDaBan, ThoiGianTao, CapNhatLanCuoi) " +
-                        "VALUES (?, 'Dề Dê Summer Concert 2026', 'Đêm nhạc hoành tráng mùa hè 2026', TO_TIMESTAMP('2026-07-15 19:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-07-15 23:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-05-01 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2026-07-14 23:59:59', 'YYYY-MM-DD HH24:MI:SS'), 'Đang mở bán', ?, 'DD001', 65, 0, SYSTIMESTAMP, SYSTIMESTAMP)",
-                        sampleMaSK, concertLoaiSK);
+                        "VALUES (?, 'Dề Dê Summer Concert 2026', 'Đêm nhạc hoành tráng mùa hè 2026', ?, ?, ?, ?, 'Đang mở bán', ?, 'DD001', 65, 0, ?, ?)",
+                        sampleMaSK, eventStart, eventEnd, saleStart, saleEnd, concertLoaiSK, now, now);
                 System.out.println("- Đã khởi tạo SUKIEN: " + sampleMaSK);
             } else {
                 jdbcTemplate.update("UPDATE SUKIEN SET TrangThaiSK = 'Đang mở bán', TongSoVe = 65, " +
-                        "ThoiGianBatDau = TO_TIMESTAMP('2026-07-15 19:00:00', 'YYYY-MM-DD HH24:MI:SS'), " +
-                        "ThoiGianKetThuc = TO_TIMESTAMP('2026-07-15 23:00:00', 'YYYY-MM-DD HH24:MI:SS'), " +
-                        "ThoiGianMoBan = TO_TIMESTAMP('2026-05-01 10:00:00', 'YYYY-MM-DD HH24:MI:SS'), " +
-                        "ThoiGianDongBan = TO_TIMESTAMP('2026-07-14 23:59:59', 'YYYY-MM-DD HH24:MI:SS'), " +
-                        "MaLoaiSK = ?, CapNhatLanCuoi = SYSTIMESTAMP WHERE MaSK = ?", concertLoaiSK, sampleMaSK);
+                        "ThoiGianBatDau = ?, " +
+                        "ThoiGianKetThuc = ?, " +
+                        "ThoiGianMoBan = ?, " +
+                        "ThoiGianDongBan = ?, " +
+                        "MaLoaiSK = ?, CapNhatLanCuoi = ? WHERE MaSK = ?",
+                        eventStart, eventEnd, saleStart, saleEnd, concertLoaiSK, now, sampleMaSK);
             }
 
             // 4. KHUVUC
@@ -386,8 +393,8 @@ public class DataInitializer implements CommandLineRunner {
                 }
 
                 String insertSql = "INSERT INTO NHANVIEN (MaNV, LoaiNV, NgayVaoLam, TrangThaiLamViec, LuongCoBan, PhuCap, MaND) " +
-                                   "VALUES (?, ?, SYSTIMESTAMP, 'Đang làm việc', ?, ?, ?)";
-                jdbcTemplate.update(insertSql, maNV, loaiNV, luongCB, phuCap, user.getMaND());
+                                   "VALUES (?, ?, ?, 'Đang làm việc', ?, ?, ?)";
+                jdbcTemplate.update(insertSql, maNV, loaiNV, new Timestamp(System.currentTimeMillis()), luongCB, phuCap, user.getMaND());
                 System.out.println("Khởi tạo NHANVIEN cho user " + username + " thành công: " + maNV);
             }
         }

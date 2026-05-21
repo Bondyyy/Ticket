@@ -115,14 +115,8 @@ public class VeController {
             redirectAttributes.addFlashAttribute("thanhCong", "Thêm vé " + createdVe.getMaVe() + " thành công!");
         } catch (Exception e) {
             String errorMsg = e.getMessage();
-            if (errorMsg != null) {
-                if (errorMsg.contains("ORA-01403")) {
-                    errorMsg = "Mã ghế không hợp lệ hoặc không tồn tại trong hệ thống. Vui lòng nhập đúng Mã Ghế hợp lệ.";
-                } else if (errorMsg.contains("ORA-20001")) {
-                    errorMsg = "Khu vực của ghế này đã hết vé! Không thể tạo thêm vé mới.";
-                } else if (errorMsg.contains("ORA-")) {
-                    errorMsg = "Lỗi cơ sở dữ liệu: Vui lòng kiểm tra lại thông tin mã ghế, mã sự kiện.";
-                }
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = "Lỗi cơ sở dữ liệu: Vui lòng kiểm tra lại thông tin mã ghế, mã sự kiện.";
             }
             redirectAttributes.addFlashAttribute("loi", "Lỗi tạo vé: " + errorMsg);
         }
@@ -136,7 +130,7 @@ public class VeController {
             redirectAttributes.addFlashAttribute("thanhCong", "Cập nhật vé " + maVe + " thành công!");
         } catch (Exception e) {
             String errorMsg = e.getMessage();
-            if (errorMsg != null && errorMsg.contains("ORA-")) {
+            if (errorMsg == null || errorMsg.isBlank()) {
                 errorMsg = "Lỗi dữ liệu: Vui lòng kiểm tra lại thông tin.";
             }
             redirectAttributes.addFlashAttribute("loi", "Lỗi cập nhật: " + errorMsg);

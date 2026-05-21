@@ -564,7 +564,7 @@
             if (!value) return '';
             let s = String(value).trim();
 
-            // Oracle/Hibernate có thể trả về: yyyy-MM-dd HH:mm:ss.0
+            // JDBC/Hibernate có thể trả về: yyyy-MM-dd HH:mm:ss.0
             if (s.includes('.')) {
                 s = s.split('.')[0];
             }

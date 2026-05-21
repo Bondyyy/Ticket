@@ -22,7 +22,7 @@
 
 Hệ thống được xây dựng trên nền tảng công nghệ Java hiện đại, tối ưu hóa hiệu năng và kiến trúc bảo mật chặt chẽ:
 - **Backend:** Spring Boot 3.4.x (Java 17)
-- **Database:** Oracle Database (Oracle SQL & PL/SQL, JPA / Hibernate)
+- **Database:** MySQL 8.x local (`dede_tickets`) với Spring Data JPA / Hibernate
 - **Frontend Engine:** Thymeleaf Template, Vanilla Javascript & Premium Vanilla CSS (thiết kế theo phong cách Glassmorphism hiện đại, responsive hoàn toàn)
 - **Security:** Spring Security & Dynamic Role-Based Session Management
 - **QR Engine:** Dynamic Hash QR generation cho vé điện tử
@@ -33,13 +33,13 @@ Hệ thống được xây dựng trên nền tảng công nghệ Java hiện đ
 
 ```text
 ticket-booking-system/
-├── Database/                         # Chứa file script tạo bảng, trigger, và backup DB Oracle
+├── Database/                         # Script Oracle legacy chỉ để tham khảo, không chạy cùng app
 ├── src/
 │   ├── main/
 │   │   ├── java/com/dede/ticketsystem/
 │   │   │   ├── config/              # Cấu hình hệ thống (Security, DataInitializer, v.v.)
 │   │   │   ├── controller/          # Các REST controller và View controller 
-│   │   │   ├── model/               # Các JPA Entity đại diện bảng trong DB Oracle
+│   │   │   ├── model/               # Các JPA Entity đại diện bảng MySQL
 │   │   │   ├── repository/          # Tương tác dữ liệu với Spring Data JPA
 │   │   │   └── service/             # Nghiệp vụ logic chính (Thanh toán, Vé, Giữ ghế, Hàng đợi)
 │   │   └── resources/
@@ -64,26 +64,46 @@ ticket-booking-system/
 
 ## 4. Cấu hình & Cách chạy ứng dụng
 
-### 4.1 Cấu hình Oracle Database
-Mở file `src/main/resources/application.properties` và cấu hình thông tin kết nối Database Oracle của bạn:
-```properties
-# Cấu hình Oracle Database
-spring.datasource.url=jdbc:oracle:thin:@//localhost:1521/FREEPDB1
-spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
-spring.datasource.username=DoAnQLDA
-spring.datasource.password=123
-
-# Cấu hình Hibernate cho Oracle
-spring.jpa.database-platform=org.hibernate.dialect.OracleDialect
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-
-# Cổng chạy ứng dụng
-server.port=8080
+### 4.1 Cấu hình MySQL Database
+Tạo database/user local:
+```sql
+CREATE DATABASE IF NOT EXISTS dede_tickets CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'dede'@'localhost' IDENTIFIED BY '123456';
+GRANT ALL PRIVILEGES ON dede_tickets.* TO 'dede'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-### 4.2 Các lệnh thực thi
+File `src/main/resources/application.properties` mặc định đọc MySQL local qua biến môi trường có fallback:
+```properties
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/dede_tickets?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&useSSL=false}
+spring.datasource.driver-class-name=${SPRING_DATASOURCE_DRIVER_CLASS_NAME:com.mysql.cj.jdbc.Driver}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:dede}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:123456}
+spring.jpa.database-platform=${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.MySQLDialect}
+spring.jpa.hibernate.ddl-auto=${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+spring.jpa.show-sql=true
+spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+server.port=${PORT:8080}
+```
+
+### 4.2 Railway Variables
+Railway không nên dùng environment variable có dấu chấm hoặc dấu gạch ngang. Cấu hình deploy dùng các biến uppercase underscore sau:
+
+| Variable | Ghi chú |
+| :--- | :--- |
+| `SPRING_DATASOURCE_URL` | JDBC URL MySQL, ví dụ `jdbc:mysql://host:3306/dede_tickets?...` |
+| `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | Mặc định `com.mysql.cj.jdbc.Driver` |
+| `SPRING_DATASOURCE_USERNAME` | User MySQL |
+| `SPRING_DATASOURCE_PASSWORD` | Mật khẩu MySQL |
+| `APP_MAIL_OTP_ENABLED` | `true` hoặc `false` |
+| `APP_MAIL_OTP_SCRIPT_URL` | URL webhook OTP nếu bật gửi OTP |
+| `APP_MAIL_OTP_SECRET` | Secret webhook OTP, đặt trong Railway Variables |
+| `APP_MAIL_OTP_EXPIRE_MINUTES` | Thời hạn OTP, mặc định `5` |
+| `APP_MAIL_OTP_MAX_ATTEMPTS` | Số lần nhập OTP tối đa, mặc định `5` |
+
+Railway tự cấp biến `PORT`; project đọc bằng `server.port=${PORT:8080}` nên local vẫn chạy ở cổng 8080. Không cấu hình `server.port=8080` cố định trên Railway.
+
+### 4.3 Các lệnh thực thi
 Chạy các lệnh sau tại thư mục gốc của dự án:
 - **Biên dịch và đóng gói (Bỏ qua Unit Test):**
   ```bash
@@ -94,25 +114,8 @@ Chạy các lệnh sau tại thư mục gốc của dự án:
   mvn spring-boot:run
   ```
 
-### 4.3 Reset database
-Các script reset nằm trong `Database/99_reset/` và chỉ xóa dữ liệu, không drop table, constraint, index, function hoặc procedure.
-
-- **Xóa toàn bộ data**:
-  1. Mở Oracle SQL Developer.
-  2. Đăng nhập bằng user/schema của ứng dụng.
-  3. Chạy script:
-  ```sql
-  @Database/99_reset/reset_all_data.sql
-  ```
-  4. Restart app.
-
-  `reset_all_data.sql` sẽ xóa toàn bộ user, role, sự kiện, khu vực, ghế, vé, đơn hàng, giao dịch và dữ liệu master/demo. Sau khi chạy xong, schema còn cấu trúc rỗng.
-
-- **Chỉ xóa dữ liệu demo/runtime**:
-  ```sql
-  @Database/99_reset/reset_runtime_only.sql
-  ```
-  `reset_runtime_only.sql` chỉ xóa dữ liệu phát sinh khi demo như lịch sử soát vé, email log, giao dịch thanh toán, vé, đơn hàng, hàng đợi và log hành vi; user, role, sự kiện, khu vực và ghế được giữ lại.
+### 4.4 Database scripts legacy
+Thư mục `Database/` là bộ script Oracle/PLSQL legacy chỉ để tham khảo tài liệu đồ án. App runtime không tự chạy các script này; schema MySQL được tạo/cập nhật bằng JPA `ddl-auto=update` và dữ liệu demo được seed bằng `DataInitializer`.
 
 - **Giữ database rỗng hoàn toàn sau khi restart app:**
   ```properties

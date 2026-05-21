@@ -98,10 +98,13 @@ public class IdGeneratorService {
     }
 
     private int findMaxSuffix(String prefix, String tableName, String idColumn) {
-        String sql = "SELECT COALESCE(MAX(TO_NUMBER(SUBSTR(" + idColumn + ", ?))), 0) " +
-                "FROM " + tableName + " WHERE REGEXP_LIKE(" + idColumn + ", ?)";
-        Number max = jdbcTemplate.queryForObject(sql, Number.class, prefix.length() + 1, "^" + prefix + "[0-9]{4,}$");
-        return max == null ? 0 : max.intValue();
+        String sql = "SELECT " + idColumn + " FROM " + tableName + " WHERE " + idColumn + " LIKE ?";
+        Pattern idPattern = Pattern.compile(Pattern.quote(prefix) + "\\d{4,}");
+        return jdbcTemplate.queryForList(sql, String.class, prefix + "%").stream()
+                .filter(id -> id != null && idPattern.matcher(id).matches())
+                .mapToInt(id -> parseSuffix(prefix, id))
+                .max()
+                .orElse(0);
     }
 
     private boolean exists(String tableName, String idColumn, String id) {
@@ -112,6 +115,14 @@ public class IdGeneratorService {
 
     private String format(String prefix, int number) {
         return prefix + String.format("%04d", number);
+    }
+
+    private int parseSuffix(String prefix, String id) {
+        try {
+            return Integer.parseInt(id.substring(prefix.length()));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private String validatePrefix(String value) {

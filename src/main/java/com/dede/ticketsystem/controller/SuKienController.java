@@ -108,12 +108,8 @@ public class SuKienController {
         } catch (Exception e) {
             e.printStackTrace();
             String errorMsg = e.getMessage();
-            if (errorMsg != null) {
-                if (errorMsg.contains("ORA-02290")) {
-                    errorMsg = "Lỗi: Trạng thái sự kiện không hợp lệ với quy định hệ thống.";
-                } else if (errorMsg.contains("ORA-")) {
-                    errorMsg = "Lỗi cơ sở dữ liệu: Vui lòng kiểm tra lại thông tin (Ràng buộc dữ liệu).";
-                }
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = "Lỗi cơ sở dữ liệu: Vui lòng kiểm tra lại thông tin (Ràng buộc dữ liệu).";
             }
             redirectAttributes.addFlashAttribute("loi", "Lỗi tạo sự kiện: " + errorMsg);
         }
@@ -151,7 +147,7 @@ public class SuKienController {
             redirectAttributes.addFlashAttribute("thanhCong", "Cập nhật sự kiện " + maSK + " thành công!");
         } catch (Exception e) {
             String errorMsg = e.getMessage();
-            if (errorMsg != null && errorMsg.contains("ORA-")) {
+            if (errorMsg == null || errorMsg.isBlank()) {
                 errorMsg = "Lỗi dữ liệu: Vui lòng kiểm tra lại thông tin.";
             }
             redirectAttributes.addFlashAttribute("loi", "Lỗi cập nhật: " + errorMsg);
