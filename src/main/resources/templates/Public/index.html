@@ -17,30 +17,25 @@
                 <i class="bi bi-lightning-charge-fill"></i>
                 Event ticketing platform
             </div>
-            <h1>Bán vé sự kiện thông minh, soát vé bằng QR, báo cáo doanh thu theo thời gian thực</h1>
+            <h1>Mở bán sự kiện lớn mà không sợ vé giả</h1>
             <p class="hero-subtitle">
-                Dề Dê Tickets giúp ban tổ chức tạo sự kiện, mở bán vé, giữ ghế, thanh toán giả lập,
-                phát hành QR và kiểm soát vé tại cổng.
+                Dề Dê Tickets giúp ban tổ chức mở bán giờ vàng bằng hàng đợi ảo, giữ ghế 10 phút,
+                phát hành QR duy nhất và theo dõi doanh thu theo thời gian thực.
             </p>
             <div class="hero-actions">
                 <a class="btn-hero-primary" th:href="@{/su-kien}">
                     <i class="bi bi-calendar-event"></i>
-                    Xem sự kiện
+                    Khám phá sự kiện
                 </a>
                 <a th:if="${session.nguoiDung == null}" class="btn-hero-secondary" th:href="@{/dang-nhap}">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    Đăng nhập
+                    Đăng nhập để mua vé
                 </a>
                 <a th:if="${session.nguoiDung != null and session.roles != null and (#lists.contains(session.roles, 'ADMIN') or #lists.contains(session.roles, 'ORGANIZER'))}"
                    class="btn-hero-secondary" th:href="@{/sukien}">
                     <i class="bi bi-speedometer2"></i>
                     Vào trang quản lý
                 </a>
-            </div>
-            <div class="hero-note">
-                <span><i class="bi bi-shield-check"></i> QR duy nhất</span>
-                <span><i class="bi bi-clock-history"></i> Giữ ghế 10 phút</span>
-                <span><i class="bi bi-graph-up-arrow"></i> Báo cáo realtime</span>
             </div>
         </div>
 
@@ -227,5 +222,8 @@
         </a>
     </section>
 </main>
+<th:block layout:fragment="page-js">
+    <script th:src="@{/js/landing-motion.js}" defer></script>
+</th:block>
 </body>
 </html>

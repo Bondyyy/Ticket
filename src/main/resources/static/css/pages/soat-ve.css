@@ -80,6 +80,7 @@
 
 .scan-status-pill i {
     font-size: 7px;
+    animation: scanStatusPulse 1.45s ease-in-out infinite;
 }
 
 .status-online {
@@ -155,6 +156,16 @@
     border-radius: 20px;
     box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
     padding: 24px;
+    transition:
+        transform .28s cubic-bezier(.2, .8, .2, 1),
+        box-shadow .28s ease,
+        border-color .28s ease;
+}
+
+.scan-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(37, 99, 235, .28);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, .12);
 }
 
 .scan-card-header {
@@ -385,6 +396,7 @@
 .result-success {
     background: #ecfdf5;
     border-color: #bbf7d0;
+    animation: resultSuccessFlash .62s ease;
 }
 
 .result-success .result-icon {
@@ -399,6 +411,7 @@
 .result-warning {
     background: #fffbeb;
     border-color: #fde68a;
+    animation: resultWarningFlash .62s ease;
 }
 
 .result-warning .result-icon {
@@ -413,6 +426,7 @@
 .result-danger {
     background: #fef2f2;
     border-color: #fecaca;
+    animation: resultDangerFlash .62s ease, resultSoftShake .26s ease;
 }
 
 .result-danger .result-icon {
@@ -427,6 +441,7 @@
 .result-offline {
     background: #eff6ff;
     border-color: #bfdbfe;
+    animation: resultOfflineFlash .62s ease;
 }
 
 .result-offline .result-icon {
@@ -446,10 +461,50 @@
     border: 1px solid #bfdbfe;
     border-radius: 18px;
     background: #f8fbff;
+    isolation: isolate;
 }
 
 .qr-reader-shell.is-active {
     background: #ffffff;
+}
+
+.qr-reader-shell::before,
+.qr-reader-shell::after {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: 16px;
+}
+
+.qr-reader-shell::before {
+    border: 2px solid transparent;
+    background:
+        linear-gradient(#0000, #0000) padding-box,
+        conic-gradient(from 0deg, #60a5fa, transparent 18%, transparent 32%, #22c55e 48%, transparent 64%, transparent 78%, #60a5fa) border-box;
+    mask:
+        linear-gradient(#000 0 0) padding-box,
+        linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    opacity: .74;
+    animation: scannerCornerGlow 2.8s linear infinite;
+}
+
+.qr-reader-shell::after {
+    top: 26px;
+    bottom: auto;
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(96, 165, 250, .9), transparent);
+    box-shadow: 0 0 18px rgba(96, 165, 250, .72);
+    opacity: .78;
+    transform: translateY(0);
+    animation: scannerBeam 2.35s ease-in-out infinite;
+}
+
+.qr-reader-shell:not(.is-active)::after {
+    opacity: .32;
 }
 
 #qr-reader {
@@ -676,6 +731,50 @@
     font-size: 13px;
 }
 
+@keyframes scanStatusPulse {
+    0%, 100% { opacity: .52; transform: scale(.86); }
+    50% { opacity: 1; transform: scale(1.22); }
+}
+
+@keyframes scannerBeam {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(292px); }
+}
+
+@keyframes scannerCornerGlow {
+    to { filter: hue-rotate(360deg); }
+}
+
+@keyframes resultSuccessFlash {
+    0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, .22); }
+    55% { box-shadow: 0 0 0 9px rgba(5, 150, 105, .12); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+}
+
+@keyframes resultWarningFlash {
+    0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, .22); }
+    55% { box-shadow: 0 0 0 9px rgba(217, 119, 6, .12); }
+    100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
+@keyframes resultDangerFlash {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, .22); }
+    55% { box-shadow: 0 0 0 9px rgba(220, 38, 38, .12); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+@keyframes resultOfflineFlash {
+    0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, .22); }
+    55% { box-shadow: 0 0 0 9px rgba(37, 99, 235, .12); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+@keyframes resultSoftShake {
+    0%, 100% { transform: translateX(0); }
+    35% { transform: translateX(-4px); }
+    70% { transform: translateX(4px); }
+}
+
 @media (max-width: 1100px) {
     .scan-grid {
         grid-template-columns: 1fr;
@@ -738,5 +837,22 @@
 
     .history-table {
         min-width: 720px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scan-status-pill i,
+    .qr-reader-shell::before,
+    .qr-reader-shell::after,
+    .result-success,
+    .result-warning,
+    .result-danger,
+    .result-offline {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+    }
+
+    .scan-card:hover {
+        transform: none !important;
     }
 }

@@ -8,7 +8,8 @@
     <th:block layout:fragment="page-css">
     <style>
         .checkout-container { max-width: 800px; margin: 0 auto; }
-        .checkout-card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; }
+        .checkout-card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; position: relative; border: 1px solid var(--dd-border); }
+        .checkout-card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 12%, rgba(255,255,255,.38) 36%, transparent 58%); transform: translateX(-120%); animation: checkoutShimmer 3.8s ease-in-out infinite; }
         .checkout-header { background: #1e3a8a; color: white; padding: 20px 30px; text-align: center; }
         .checkout-header h2 { margin: 0; font-family: "Be Vietnam Pro", "Inter", sans-serif; font-weight: 800; }
         .timer-box { font-size: 24px; font-weight: bold; color: #fbbf24; margin-top: 10px; }
@@ -22,13 +23,30 @@
         .total-value { color: #ef4444; font-size: 24px; }
         
         .action-box { display: flex; gap: 15px; margin-top: 30px; }
-        .btn-pay { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; color: white; text-align: center; }
+        .btn-pay { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform .22s ease, box-shadow .22s ease, background-color .22s ease; color: white; text-align: center; }
+        .btn-pay:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(15, 23, 42, .14); }
+        .btn-pay:disabled { cursor: not-allowed; opacity: .72; }
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
         .btn-fail { background: #ef4444; }
         .btn-fail:hover { background: #dc2626; }
         .btn-cancel { background: #64748b; }
         .btn-cancel:hover { background: #475569; }
+
+        #payment-stats-card { transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease; }
+        #payment-stats-card.payment-card-flash { border-color: #f59e0b !important; box-shadow: 0 0 0 6px rgba(245, 158, 11, .12); }
+
+        @keyframes checkoutShimmer {
+            0%, 54% { transform: translateX(-120%); opacity: 0; }
+            62% { opacity: .72; }
+            100% { transform: translateX(120%); opacity: 0; }
+        }
+
+        @media (max-width: 720px) {
+            .action-box { flex-direction: column; }
+            .checkout-body { padding: 22px; }
+            .timer-box { font-size: 18px; }
+        }
         
     </style>
     </th:block>
@@ -125,6 +143,12 @@
         const btnSuccess = document.getElementById('btn-success');
         const btnFail = document.getElementById('btn-fail');
         const btnCancel = document.getElementById('btn-cancel');
+        const paymentStatsCard = document.getElementById('payment-stats-card');
+        const originalButtonHtml = new Map([
+            [btnSuccess, btnSuccess.innerHTML],
+            [btnFail, btnFail.innerHTML],
+            [btnCancel, btnCancel.innerHTML]
+        ]);
 
         function formatTime(seconds) {
             const m = Math.floor(seconds / 60);
@@ -134,16 +158,32 @@
 
         // Khởi tạo text ban đầu
         timerEl.textContent = formatTime(timeLeft);
+        syncTimerState();
+
+        function syncTimerState() {
+            const timerBox = timerEl.closest('.timer-box') || timerEl;
+            timerBox.classList.toggle('is-warning', timeLeft <= 180 && timeLeft > 60);
+            timerBox.classList.toggle('is-danger', timeLeft <= 60);
+        }
+
+        function restorePaymentButtons() {
+            [btnSuccess, btnFail, btnCancel].forEach(btn => {
+                btn.classList.remove('is-loading');
+                btn.innerHTML = originalButtonHtml.get(btn);
+            });
+        }
         
         const countdownTimer = setInterval(() => {
             timeLeft--;
             if (timeLeft <= 0) {
                 clearInterval(countdownTimer);
                 timerEl.textContent = "00:00";
+                syncTimerState();
                 alert("Đã hết thời gian giữ ghế. Đơn hàng đã bị hủy và ghế đã được trả lại.");
                 cancelOrderOnTimeout();
             } else {
                 timerEl.textContent = formatTime(timeLeft);
+                syncTimerState();
             }
         }, 1000);
         
@@ -154,6 +194,9 @@
             btnSuccess.disabled = true;
             btnFail.disabled = true;
             btnCancel.disabled = true;
+            const activeButton = isSuccess ? btnSuccess : btnFail;
+            activeButton.classList.add('is-loading');
+            activeButton.textContent = isSuccess ? 'Đang xác nhận' : 'Đang mô phỏng lỗi';
             
             const payload = {
                 orderId: orderId,
@@ -189,12 +232,16 @@
                         
                         document.getElementById('error-message-box').style.display = 'block';
                         document.getElementById('error-text').textContent = d.message;
+                        paymentStatsCard?.classList.remove('payment-card-flash');
+                        void paymentStatsCard?.offsetWidth;
+                        paymentStatsCard?.classList.add('payment-card-flash');
                         
                         // Kích hoạt lại nút bấm
                         isProcessing = false;
                         btnSuccess.disabled = false;
                         btnFail.disabled = false;
                         btnCancel.disabled = false;
+                        restorePaymentButtons();
                     } else {
                         // Hết lượt thử
                         clearInterval(countdownTimer);
@@ -209,6 +256,7 @@
                 btnSuccess.disabled = false;
                 btnFail.disabled = false;
                 btnCancel.disabled = false;
+                restorePaymentButtons();
             });
         }
 

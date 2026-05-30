@@ -11,26 +11,33 @@
             .booking-page { background: #f8fafc; }
             .booking-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: flex; gap: 30px; }
             .main-col { flex: 1; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--dd-border); }
-            .side-col { width: 350px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--dd-border); display: flex; flex-direction: column; height: fit-content; position: sticky; top: 90px; }
+            .side-col { width: 350px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 16px 40px rgba(15,23,42,0.08); border: 1px solid var(--dd-border); display: flex; flex-direction: column; height: fit-content; position: sticky; top: 90px; transition: transform .28s ease, box-shadow .28s ease; }
+            .side-col:hover { transform: translateY(-3px); box-shadow: 0 24px 52px rgba(15,23,42,0.12); }
             
-            .stage-box { background: #334155; color: white; text-align: center; padding: 15px; border-radius: 8px; font-weight: bold; letter-spacing: 5px; margin-bottom: 30px; }
+            .stage-box { background: radial-gradient(circle at 50% -40%, rgba(96,165,250,.55), transparent 52%), #334155; color: white; text-align: center; padding: 15px; border-radius: 8px; font-weight: bold; letter-spacing: 5px; margin-bottom: 30px; box-shadow: 0 16px 34px rgba(37,99,235,.16); position: relative; overflow: hidden; }
+            .stage-box::after { content: ""; position: absolute; inset: auto 12% 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent); animation: stageSweep 2.8s ease-in-out infinite; }
             .booking-page .seat-map { align-items: stretch; }
-            .booking-page .seat-area { margin-bottom: 18px; }
+            .booking-page .seat-area { margin-bottom: 18px; transition: border-color .24s ease, box-shadow .24s ease; }
+            .booking-page .seat-area:hover { border-color: rgba(37,99,235,.28); box-shadow: 0 14px 32px rgba(15,23,42,.08); }
             .booking-page .seat-area:last-child { margin-bottom: 0; }
             
             .legend { display: flex; gap: 15px; justify-content: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; flex-wrap: wrap; }
             .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; }
-            .legend-box { width: 18px; height: 18px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
+            .legend-box { width: 18px; height: 18px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 3px 8px rgba(15,23,42,.08); }
             
             .summary-title { font-size: 20px; color: #1e3a8a; margin: 0 0 20px; font-family: "Be Vietnam Pro", "Inter", sans-serif; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;}
             .selected-seats-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; min-height: 50px; }
             .selected-seat-tag { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; }
             
             .total-box { margin-top: auto; padding-top: 20px; border-top: 1px solid #e2e8f0; }
-            .total-price { font-size: 24px; color: #ef4444; font-weight: bold; text-align: right; margin-bottom: 20px; }
+            .total-price { font-size: 24px; color: #ef4444; font-weight: bold; text-align: right; margin-bottom: 20px; transition: transform .24s ease, color .24s ease; }
             .btn-continue { width: 100%; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
             .btn-continue:hover { background: #1d4ed8; }
             .btn-continue:disabled { background: #94a3b8; cursor: not-allowed; }
+            @keyframes stageSweep {
+                0%, 100% { transform: translateX(-28%); opacity: .45; }
+                50% { transform: translateX(28%); opacity: 1; }
+            }
             @media (max-width: 992px) {
                 .booking-container { flex-direction: column; }
                 .side-col { width: 100%; position: static; }
@@ -123,9 +130,10 @@
                     return;
                 }
 
-                areas.forEach(area => {
+                areas.forEach((area, areaIndex) => {
                     const areaEl = document.createElement('section');
-                    areaEl.className = 'seat-area';
+                    areaEl.className = 'seat-area reveal-on-scroll';
+                    areaEl.style.setProperty('--reveal-delay', `${Math.min(areaIndex * 90, 360)}ms`);
 
                     const header = document.createElement('div');
                     header.className = 'seat-area-header';
@@ -169,6 +177,7 @@
                     });
 
                     container.appendChild(areaEl);
+                    requestAnimationFrame(() => areaEl.classList.add('is-visible'));
                 });
             }
             

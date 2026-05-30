@@ -32,6 +32,7 @@
             text-align: center;
             position: relative;
             overflow: hidden;
+            animation: queueCardEnter .76s cubic-bezier(.2, .8, .2, 1) both;
         }
 
         .queue-container::before {
@@ -115,6 +116,12 @@
             font-size: 26px;
             font-weight: 800;
             color: #ffffff;
+            transition: transform .28s ease, color .28s ease;
+        }
+
+        .pos-number.is-updating {
+            transform: translate(-50%, -50%) scale(1.12);
+            color: #93c5fd;
         }
 
         @keyframes spin {
@@ -161,6 +168,12 @@
             font-size: 20px;
             font-weight: 700;
             color: #3b82f6;
+            transition: transform .28s ease, color .28s ease;
+        }
+
+        .stat-value.is-updating {
+            transform: translateY(-3px);
+            color: #60a5fa;
         }
 
         .progress-bar-wrapper {
@@ -177,6 +190,17 @@
             height: 100%;
             width: 0%;
             transition: width 1s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+            transform: translateX(-100%);
+            animation: progressShimmer 1.65s ease-in-out infinite;
         }
 
         .status-badge {
@@ -190,6 +214,10 @@
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 20px;
+        }
+
+        .status-badge i {
+            animation: liveStatusPulse 1.35s ease-in-out infinite;
         }
 
         .status-badge.allowed {
@@ -228,6 +256,75 @@
 
         .btn-demo:hover {
             background: #dc2626;
+        }
+
+        .queue-stream {
+            height: 34px;
+            position: relative;
+            margin: 0 0 22px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .queue-stream span {
+            position: absolute;
+            top: 50%;
+            left: -24px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #60a5fa;
+            box-shadow: 0 0 18px rgba(96, 165, 250, .72);
+            transform: translateY(-50%);
+            animation: queueDotMove 4.8s linear infinite;
+            animation-delay: var(--dot-delay, 0s);
+        }
+
+        .queue-stream span:nth-child(2) { --dot-delay: .55s; opacity: .72; }
+        .queue-stream span:nth-child(3) { --dot-delay: 1.15s; opacity: .88; }
+        .queue-stream span:nth-child(4) { --dot-delay: 1.85s; opacity: .58; }
+        .queue-stream span:nth-child(5) { --dot-delay: 2.55s; opacity: .8; }
+        .queue-stream span:nth-child(6) { --dot-delay: 3.25s; opacity: .62; }
+
+        @keyframes queueCardEnter {
+            0% { opacity: 0; transform: translateY(24px) scale(.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes progressShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes liveStatusPulse {
+            0%, 100% { opacity: .55; transform: scale(.9); }
+            50% { opacity: 1; transform: scale(1.18); }
+        }
+
+        @keyframes queueDotMove {
+            0% { transform: translate(-24px, -50%); }
+            100% { transform: translate(calc(650px + 48px), -50%); }
+        }
+
+        @media (max-width: 720px) {
+            .queue-container {
+                padding: 26px 18px;
+            }
+
+            .event-card {
+                align-items: flex-start;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+                scroll-behavior: auto !important;
+            }
         }
     </style>
 </head>
@@ -280,6 +377,10 @@
             <div class="progress-bar-fill" id="progressBar"></div>
         </div>
 
+        <div class="queue-stream" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
         <div style="font-size: 13px; color: #64748b;">
             <i class="fa-solid fa-shield-halved"></i> Hệ thống tự động làm mới mỗi 5 giây. Không đóng trình duyệt hoặc tải lại trang.
         </div>
@@ -329,8 +430,16 @@
                     const pos = d.viTriHang;
 
                     // Update UI values
-                    document.getElementById('positionText').textContent = status === 'Được vào' ? '✓' : pos;
-                    document.getElementById('statPosition').textContent = status === 'Được vào' ? 'Đến lượt' : pos;
+                    const positionText = document.getElementById('positionText');
+                    const statPosition = document.getElementById('statPosition');
+                    positionText.textContent = status === 'Được vào' ? '✓' : pos;
+                    statPosition.textContent = status === 'Được vào' ? 'Đến lượt' : pos;
+                    [positionText, statPosition].forEach(el => {
+                        el.classList.remove('is-updating');
+                        void el.offsetWidth;
+                        el.classList.add('is-updating');
+                        setTimeout(() => el.classList.remove('is-updating'), 360);
+                    });
                     
                     updateEstTime(pos);
 
@@ -345,6 +454,7 @@
                         const badge = document.getElementById('statusBadge');
                         badge.className = 'status-badge allowed';
                         badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>ĐÃ ĐƯỢC PHÉP VÀO MUA VÉ</span>';
+                        document.querySelector('.queue-container')?.classList.add('is-allowed');
 
                         document.getElementById('waitingHeader').textContent = 'Đang chuyển hướng...';
                         document.getElementById('waitingHeader').style.color = '#10b981';
