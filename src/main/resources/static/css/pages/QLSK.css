@@ -493,6 +493,14 @@ textarea.form-control {
     text-align: center;
 }
 
+.image-preview-banner {
+    aspect-ratio: 16 / 9;
+}
+
+.image-preview-thumb {
+    aspect-ratio: 4 / 3;
+}
+
 .image-preview img {
     width: 100%;
     height: 100%;
@@ -533,6 +541,128 @@ textarea.form-control {
     font-size: 12px;
     font-weight: 700;
     text-align: right;
+}
+
+.organizer-section {
+    grid-column: 1 / -1;
+}
+
+.organizer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.organizer-empty {
+    padding: 14px 16px;
+    border: 1px dashed #93c5fd;
+    border-radius: 14px;
+    background: #eff6ff;
+    color: #1e40af;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.organizer-row {
+    display: grid;
+    grid-template-columns:
+        minmax(260px, 1.3fr)
+        minmax(220px, 1fr)
+        minmax(240px, 1fr)
+        minmax(86px, auto)
+        42px;
+    gap: 12px;
+    align-items: end;
+    padding: 14px;
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 8px 22px rgba(37, 99, 235, 0.06);
+}
+
+.organizer-field {
+    min-width: 0;
+}
+
+.organizer-field label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.organizer-row select,
+.organizer-row input {
+    min-width: 100%;
+}
+
+.organizer-primary {
+    min-height: var(--control-height);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: var(--control-radius);
+    color: #1e40af;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.organizer-primary input {
+    min-width: auto;
+}
+
+.organizer-add-btn {
+    width: 100%;
+    margin-top: 12px;
+}
+
+.stage-type-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.stage-type-summary span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.stage-type-summary strong {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+#venueModal {
+    align-items: center;
+    padding: 24px 16px;
+}
+
+#venueModal .modal-box {
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+}
+
+#venueModal .modal-body {
+    padding-bottom: 34px;
+}
+
+#venueModal .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+}
+
+#venueModal .btn-save {
+    min-width: 160px;
 }
 
 .autocomplete-group {
@@ -647,5 +777,13 @@ textarea.form-control {
     .btn-close-modal,
     .btn-save {
         flex: 1 1 150px;
+    }
+
+    .organizer-row {
+        grid-template-columns: 1fr;
+    }
+
+    .organizer-primary {
+        justify-content: flex-start;
     }
 }

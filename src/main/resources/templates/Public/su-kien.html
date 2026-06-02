@@ -110,7 +110,12 @@
                 </div>
                 <div class="event-meta">
                     <i class="bi bi-geo-alt"></i>
-                    <span th:text="${sk.maDiaDiem != null ? sk.maDiaDiem : 'Đang cập nhật địa điểm'}">Địa điểm</span>
+                    <span th:text="${sk.maDiaDiem != null and diaDiemMap.get(sk.maDiaDiem) != null ? diaDiemMap.get(sk.maDiaDiem).tenDiaDiem : 'Đang cập nhật địa điểm'}">Địa điểm</span>
+                </div>
+                <div class="event-meta event-address"
+                     th:if="${sk.maDiaDiem != null and diaDiemMap.get(sk.maDiaDiem) != null and diaDiemMap.get(sk.maDiaDiem).diaChi != null and !diaDiemMap.get(sk.maDiaDiem).diaChi.isEmpty()}">
+                    <i class="bi bi-signpost"></i>
+                    <span th:text="${diaDiemMap.get(sk.maDiaDiem).diaChi + (diaDiemMap.get(sk.maDiaDiem).thanhPho != null and !diaDiemMap.get(sk.maDiaDiem).thanhPho.isEmpty() ? ', ' + diaDiemMap.get(sk.maDiaDiem).thanhPho : '')}">Địa chỉ</span>
                 </div>
                 <a th:href="@{/su-kien/{id}(id=${sk.maSK})}" class="event-cta">
                     Xem chi tiết

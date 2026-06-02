@@ -5,80 +5,146 @@
 <head>
     <meta charset="UTF-8">
     <title th:text="${suKien.tenSK} + ' - Dề Dê Tickets'">Chi tiết sự kiện</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <th:block layout:fragment="page-css">
         <style>
-            .event-detail-container { max-width: 1000px; margin: 0 auto; }
-            .event-header { display: flex; gap: 40px; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--dd-border); }
-            .event-poster { width: 350px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-            .event-details { flex: 1; display: flex; flex-direction: column; }
-            .event-title { font-size: 28px; color: #1e3a8a; margin: 0 0 15px; font-family: "Be Vietnam Pro", "Inter", sans-serif; }
-            .info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 12px; color: #475569; font-size: 16px; }
-            .info-row i { width: 24px; text-align: center; color: #3b82f6; font-size: 18px; }
-            .zone-pricing { margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
-            .zone-card { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
-            .btn-book { margin-top: auto; background: #2563eb; color: white; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; text-align: center; text-decoration: none; display: block; }
-            .btn-book:hover { background: #1d4ed8; }
-            @media (max-width: 768px) {
-                .event-header { flex-direction: column; gap: 20px; padding: 20px; }
-                .event-poster { width: 100%; height: auto; }
+            .event-detail-page { padding: 24px 0 64px; }
+            .detail-hero {
+                display: grid;
+                grid-template-columns: minmax(0, .82fr) minmax(420px, 1.18fr);
+                gap: 0;
+                overflow: hidden;
+                border-radius: 30px;
+                background: linear-gradient(135deg, #0f172a, #1e1b4b 54%, #0f766e);
+                box-shadow: 0 30px 80px rgba(15,23,42,.28);
+                border: 1px solid rgba(255,255,255,.12);
+            }
+            .detail-hero-copy { padding: 38px; color: #fff; display: flex; flex-direction: column; gap: 20px; }
+            .detail-status { width: fit-content; border-radius: 999px; padding: 8px 12px; font-weight: 900; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); }
+            .detail-status.is-open { color: #bbf7d0; }
+            .detail-status.is-closed { color: #fecaca; }
+            .detail-title { margin: 0; font-size: clamp(34px, 4vw, 56px); line-height: 1.08; letter-spacing: 0; font-weight: 900; }
+            .detail-summary { margin: 0; color: #cbd5e1; line-height: 1.75; font-size: 16px; }
+            .detail-meta-grid { display: grid; gap: 12px; }
+            .detail-meta { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; color: #e2e8f0; }
+            .detail-meta i { width: 34px; height: 34px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.1); color: #93c5fd; }
+            .detail-meta strong { display: block; color: #fff; }
+            .detail-meta span { color: #cbd5e1; }
+            .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; }
+            .btn-book-primary, .btn-book-disabled {
+                min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+                border-radius: 14px; padding: 0 20px; font-weight: 900; text-decoration: none; border: 0;
+            }
+            .btn-book-primary { color: #fff; background: linear-gradient(135deg, #2563eb, #7c3aed); box-shadow: 0 18px 34px rgba(37,99,235,.26); }
+            .btn-book-disabled { color: #e2e8f0; background: rgba(148,163,184,.22); cursor: not-allowed; }
+            .detail-hero-media { position: relative; min-height: 520px; background: linear-gradient(135deg, #1d4ed8, #f97316); }
+            .detail-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .detail-hero-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,23,42,.46), transparent 52%); pointer-events: none; }
+            .detail-placeholder { height: 100%; min-height: 520px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.86); font-weight: 900; font-size: 28px; }
+            .ticket-section { margin-top: 42px; }
+            .ticket-section-header { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+            .ticket-section h2 { margin: 0; color: #0f172a; font-size: clamp(28px, 3vw, 40px); font-weight: 900; }
+            .ticket-section p { margin: 6px 0 0; color: #64748b; }
+            .ticket-zone-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+            .ticket-zone-card { background: #fff; border: 1px solid #dbeafe; border-radius: 18px; padding: 20px; box-shadow: 0 16px 40px rgba(15,23,42,.07); }
+            .zone-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+            .zone-swatch { width: 18px; height: 18px; border-radius: 6px; flex: 0 0 18px; }
+            .ticket-zone-card h3 { margin: 0; color: #1e3a8a; font-size: 18px; }
+            .zone-price { color: #ef4444; font-weight: 900; font-size: 22px; }
+            .zone-remaining { color: #64748b; font-weight: 700; margin-top: 8px; }
+            .empty-ticket-state { border: 1px dashed #93c5fd; border-radius: 22px; padding: 34px; text-align: center; background: #eff6ff; color: #1e3a8a; font-weight: 800; }
+            @media (max-width: 920px) {
+                .detail-hero { grid-template-columns: 1fr; }
+                .detail-hero-media { order: -1; min-height: 320px; }
+                .detail-placeholder { min-height: 320px; }
+                .detail-hero-copy { padding: 28px; }
             }
         </style>
     </th:block>
 </head>
 <body>
-    <main layout:fragment="content">
-        <div class="event-detail-container">
-            <div class="event-header animate__animated animate__fadeIn">
-                <img th:src="${suKien.hinhAnh != null ? suKien.hinhAnh : '/images/default-event.jpg'}" onerror="this.src='https://placehold.co/400x500/e2e8f0/64748b?text=Poster'" class="event-poster">
-                <div class="event-details">
-                    <h1 class="event-title" th:text="${suKien.tenSK}">Tên Sự Kiện</h1>
-                    
-                    <div class="info-row">
-                        <i class="fa-solid fa-clock"></i>
-                        <div th:text="${suKien.thoiGianBatDau != null ? #dates.format(suKien.thoiGianBatDau, 'HH:mm - dd/MM/yyyy') : 'Đang cập nhật'}">19:00 - 01/01/2026</div>
+<main layout:fragment="content" class="event-detail-page">
+    <section class="detail-hero">
+        <div class="detail-hero-copy">
+            <span class="detail-status"
+                  th:classappend="${suKien.trangThaiSK == 'Đang mở bán'} ? ' is-open' : ' is-closed'"
+                  th:text="${suKien.trangThaiSK != null ? suKien.trangThaiSK : 'Đang cập nhật'}">Đang mở bán</span>
+            <h1 class="detail-title" th:text="${suKien.tenSK}">Tên sự kiện</h1>
+            <p class="detail-summary" th:text="${suKien.moTaNgan != null and !suKien.moTaNgan.isBlank() ? suKien.moTaNgan : 'Khám phá thông tin sự kiện, chọn khu vé phù hợp và nhận QR check-in nhanh chóng.'}">
+                Mô tả ngắn
+            </p>
+
+            <div class="detail-meta-grid">
+                <div class="detail-meta">
+                    <i class="bi bi-calendar3"></i>
+                    <div>
+                        <strong>Thời gian</strong>
+                        <span th:text="${suKien.thoiGianBatDau != null ? #dates.format(suKien.thoiGianBatDau, 'HH:mm dd/MM/yyyy') : 'Đang cập nhật'}">20:00 20/06/2026</span>
+                        <span th:if="${suKien.thoiGianKetThuc != null}" th:text="${' - ' + #dates.format(suKien.thoiGianKetThuc, 'HH:mm dd/MM/yyyy')}"></span>
                     </div>
-                    
-                    <div class="info-row">
-                        <i class="fa-solid fa-location-dot"></i>
-                        <div th:text="${suKien.maDiaDiem != null ? suKien.maDiaDiem : 'Đang cập nhật'}">Địa điểm</div>
+                </div>
+                <div class="detail-meta">
+                    <i class="bi bi-geo-alt"></i>
+                    <div>
+                        <strong th:text="${diaDiem != null ? diaDiem.tenDiaDiem : 'Đang cập nhật địa điểm'}">Tên địa điểm</strong>
+                        <span th:if="${diaDiem != null and diaDiem.diaChi != null and !diaDiem.diaChi.isBlank()}"
+                              th:text="${diaDiem.diaChi + (diaDiem.thanhPho != null and !diaDiem.thanhPho.isBlank() ? ', ' + diaDiem.thanhPho : '')}">Địa chỉ</span>
                     </div>
-                    
-                    <div class="info-row">
-                        <i class="fa-solid fa-align-left"></i>
-                        <div th:text="${suKien.moTaNgan != null ? suKien.moTaNgan : 'Không có mô tả'}">Mô tả ngắn</div>
+                </div>
+                <div class="detail-meta">
+                    <i class="bi bi-ticket-perforated"></i>
+                    <div>
+                        <strong>Giá từ</strong>
+                        <span th:text="${giaTu != null ? #numbers.formatDecimal(giaTu, 0, 'COMMA', 0, 'POINT') + ' VNĐ' : 'Đang cập nhật'}">500.000 VNĐ</span>
                     </div>
-                    
-                    <div class="zone-pricing">
-                        <h3 style="margin-top: 0; color: #1e3a8a;">Bảng Giá Vé</h3>
-                        <div th:each="zone : ${zones}" class="zone-card">
-                            <div style="display:flex; align-items:center; gap: 10px;">
-                                <div th:style="'width: 16px; height: 16px; border-radius: 4px; background:' + ${zone.mauSacHienThi}"></div>
-                                <strong th:text="${zone.tenKhuVuc}">VIP</strong>
-                            </div>
-                            <div style="text-align: right;">
-                                <span style="color: #ef4444; font-weight: bold; display: block;" th:text="${#numbers.formatDecimal(zone.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1,000,000 VNĐ</span>
-                                <span style="color: #64748b; font-size: 13px;" th:text="'Còn trống: ' + (${zone.soGheToiDa} - (${zone.soGheDaBan != null ? zone.soGheDaBan : 0})) + '/' + ${zone.soGheToiDa}">Còn trống: 100/100</span>
-                            </div>
-                        </div>
-                        <div th:if="${zones == null or zones.isEmpty()}" style="color: #64748b; font-style: italic;">Sự kiện này chưa thiết lập sơ đồ ghế và giá vé.</div>
-                    </div>
-                    
-                    <a th:if="${canBuy and zones != null and !zones.isEmpty()}" th:href="@{/mua-ve/{id}(id=${suKien.maSK})}" class="btn-book" style="margin-top: 20px;">MUA VÉ NGAY</a>
-                    <button th:unless="${canBuy and zones != null and !zones.isEmpty()}" disabled class="btn-book" style="margin-top: 20px; background: #94a3b8; cursor: not-allowed;">
-                        <span th:if="${zones == null or zones.isEmpty()}">CHƯA THIẾT LẬP SƠ ĐỒ GHẾ</span>
-                        <span th:unless="${zones == null or zones.isEmpty()}">
-                            <span th:if="${suKien.trangThaiSK == 'Đang mở bán'}">HẾT HẠN MỞ BÁN</span>
-                            <span th:if="${suKien.trangThaiSK == 'Chưa mở bán'}">CHƯA MỞ BÁN</span>
-                            <span th:if="${suKien.trangThaiSK == 'Đã kết thúc'}">ĐÃ KẾT THÚC</span>
-                            <span th:if="${suKien.trangThaiSK == 'Đã hủy'}">ĐÃ HỦY</span>
-                            <span th:if="${suKien.trangThaiSK == 'Tạm ngưng'}">TẠM NGƯNG</span>
-                            <span th:if="${suKien.trangThaiSK != 'Đang mở bán' and suKien.trangThaiSK != 'Chưa mở bán' and suKien.trangThaiSK != 'Đã kết thúc' and suKien.trangThaiSK != 'Đã hủy' and suKien.trangThaiSK != 'Tạm ngưng'}">KHÔNG THỂ MUA VÉ</span>
-                        </span>
-                    </button>
                 </div>
             </div>
+
+            <div class="hero-actions">
+                <a th:if="${canBuy and zones != null and !zones.isEmpty()}" th:href="@{/mua-ve/{id}(id=${suKien.maSK})}" class="btn-book-primary">
+                    <i class="bi bi-bag-check"></i> Mua vé ngay
+                </a>
+                <button th:unless="${canBuy and zones != null and !zones.isEmpty()}" class="btn-book-disabled" disabled>
+                    <i class="bi bi-info-circle"></i>
+                    <span th:if="${zones == null or zones.isEmpty()}">Sự kiện này chưa thiết lập vé</span>
+                    <span th:unless="${zones == null or zones.isEmpty()}" th:text="${suKien.trangThaiSK == 'Chưa mở bán' ? 'Chưa mở bán' : 'Hiện chưa thể mua vé'}">Hiện chưa thể mua vé</span>
+                </button>
+            </div>
         </div>
-    </main>
+
+        <div class="detail-hero-media">
+            <img th:if="${suKien.hinhAnh != null and !suKien.hinhAnh.isBlank()}" th:src="${suKien.hinhAnh}" th:alt="${suKien.tenSK}">
+            <img th:if="${(suKien.hinhAnh == null or suKien.hinhAnh.isBlank()) and suKien.hinhAnhThumb != null and !suKien.hinhAnhThumb.isBlank()}" th:src="${suKien.hinhAnhThumb}" th:alt="${suKien.tenSK}">
+            <div class="detail-placeholder" th:if="${(suKien.hinhAnh == null or suKien.hinhAnh.isBlank()) and (suKien.hinhAnhThumb == null or suKien.hinhAnhThumb.isBlank())}">
+                Dề Dê Tickets
+            </div>
+        </div>
+    </section>
+
+    <section class="ticket-section">
+        <div class="ticket-section-header">
+            <div>
+                <h2>Khu vé</h2>
+                <p>Chọn khu vực phù hợp khi sự kiện mở bán.</p>
+            </div>
+        </div>
+
+        <div class="ticket-zone-grid" th:if="${zones != null and !zones.isEmpty()}">
+            <article class="ticket-zone-card" th:each="zone : ${zones}">
+                <div class="zone-top">
+                    <span class="zone-swatch" th:style="'background:' + ${zone.mauSacHienThi != null ? zone.mauSacHienThi : '#2563eb'}"></span>
+                    <h3 th:text="${zone.tenKhuVuc}">VIP</h3>
+                </div>
+                <div class="zone-price" th:text="${#numbers.formatDecimal(zone.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">500.000 VNĐ</div>
+                <div class="zone-remaining" th:text="${'Còn lại: ' + ((zone.soGheToiDa != null ? zone.soGheToiDa : 0) - (zone.soGheDaBan != null ? zone.soGheDaBan : 0)) + ' / ' + (zone.soGheToiDa != null ? zone.soGheToiDa : 0)}">
+                    Còn lại
+                </div>
+            </article>
+        </div>
+
+        <div class="empty-ticket-state" th:if="${zones == null or zones.isEmpty()}">
+            Sự kiện này chưa thiết lập vé. Vui lòng quay lại sau.
+        </div>
+    </section>
+</main>
 </body>
 </html>

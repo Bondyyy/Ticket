@@ -203,8 +203,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean isCustomerRoute(String uri) {
-        return uri.startsWith("/mua-ve/") || 
-               uri.equals("/thanh-toan") || 
+        return uri.equals("/thanh-toan") || 
                uri.startsWith("/api/booking/") ||
                uri.startsWith("/tai-khoan-cua-toi/") ||
                uri.equals("/ve-cua-toi") ||
@@ -216,7 +215,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean isAuthenticatedRoute(String uri) {
-        return uri.equals("/su-kien") || uri.startsWith("/su-kien/");
+        return false;
     }
 
     private boolean isTicketSimulationRoute(String uri) {

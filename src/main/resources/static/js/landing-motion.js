@@ -21,14 +21,6 @@
         });
     });
 
-    const workflow = document.getElementById('how-it-works');
-    if (workflow) {
-        workflow.classList.add('workflow-stack-enabled');
-        workflow.querySelectorAll('.step-card').forEach((card, index) => {
-            card.style.setProperty('--stack-index', index);
-        });
-    }
-
     const heroVisual = landing.querySelector('.hero-visual');
     const hero = landing.querySelector('.landing-hero');
     let ticking = false;

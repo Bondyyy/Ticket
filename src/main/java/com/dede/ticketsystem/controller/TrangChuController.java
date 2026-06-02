@@ -13,6 +13,7 @@ import com.dede.ticketsystem.repository.KhuVucRepository;
 import com.dede.ticketsystem.repository.GheRepository;
 import com.dede.ticketsystem.repository.DonHangRepository;
 import com.dede.ticketsystem.repository.DonHangChiTietRepository;
+import com.dede.ticketsystem.repository.DiaDiemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,6 +27,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 
 @Controller
 public class TrangChuController {
@@ -35,6 +39,7 @@ public class TrangChuController {
     private final GheRepository gheRepository;
     private final DonHangRepository donHangRepository;
     private final DonHangChiTietRepository donHangChiTietRepository;
+    private final DiaDiemRepository diaDiemRepository;
     private final BookingService bookingService;
 
     @Autowired
@@ -45,12 +50,14 @@ public class TrangChuController {
                               GheRepository gheRepository,
                               DonHangRepository donHangRepository,
                               DonHangChiTietRepository donHangChiTietRepository,
+                              DiaDiemRepository diaDiemRepository,
                               BookingService bookingService) {
         this.suKienService = suKienService;
         this.khuVucRepository = khuVucRepository;
         this.gheRepository = gheRepository;
         this.donHangRepository = donHangRepository;
         this.donHangChiTietRepository = donHangChiTietRepository;
+        this.diaDiemRepository = diaDiemRepository;
         this.bookingService = bookingService;
     }
 
@@ -61,6 +68,7 @@ public class TrangChuController {
                 .limit(6)
                 .toList();
         model.addAttribute("featuredEvents", featuredEvents);
+        model.addAttribute("diaDiemMap", buildDiaDiemMap(featuredEvents));
         return "Public/index";
     }
 
@@ -71,6 +79,7 @@ public class TrangChuController {
             Model model) {
         List<SuKien> list = suKienService.timKiem(keyword, trangThai);
         model.addAttribute("suKienList", list);
+        model.addAttribute("diaDiemMap", buildDiaDiemMap(list));
         model.addAttribute("keyword", keyword);
         model.addAttribute("trangThaiFilter", trangThai);
         return "Public/su-kien";
@@ -96,6 +105,11 @@ public class TrangChuController {
         }
 
         List<KhuVuc> zones = khuVucRepository.findByMaSK(maSK);
+        BigDecimal giaTu = zones.stream()
+                .map(KhuVuc::getGiaVe)
+                .filter(gia -> gia != null)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
         
         boolean canBuy = false;
         if ("Đang mở bán".equals(sk.getTrangThaiSK())) {
@@ -110,6 +124,8 @@ public class TrangChuController {
         model.addAttribute("suKien", sk);
         model.addAttribute("zones", zones);
         model.addAttribute("canBuy", canBuy);
+        model.addAttribute("diaDiem", sk.getMaDiaDiem() != null ? diaDiemRepository.findById(sk.getMaDiaDiem()).orElse(null) : null);
+        model.addAttribute("giaTu", giaTu);
         return "Public/chi-tiet-su-kien";
     }
 
@@ -270,5 +286,24 @@ public class TrangChuController {
         model.addAttribute("latestError", latestError);
         
         return "Public/thanh-toan";
+    }
+
+    private Map<String, com.dede.ticketsystem.model.DiaDiem> buildDiaDiemMap(List<SuKien> suKienList) {
+        if (suKienList == null || suKienList.isEmpty()) {
+            return Map.of();
+        }
+        List<String> ids = suKienList.stream()
+                .map(SuKien::getMaDiaDiem)
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return diaDiemRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(
+                        com.dede.ticketsystem.model.DiaDiem::getMaDiaDiem,
+                        diaDiem -> diaDiem
+                ));
     }
 }

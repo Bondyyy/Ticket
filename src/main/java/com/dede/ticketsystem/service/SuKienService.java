@@ -601,6 +601,9 @@ public class SuKienService {
         if (trangThai == null) {
             trangThai = "Chưa mở bán";
         }
+        if (normalizeNullable(dto.getLoaiSoDo()) == null) {
+            throw new RuntimeException("Vui lòng chọn loại sơ đồ vé.");
+        }
 
         validateTrangThai(trangThai);
         validateThoiGian(batDau, ketThuc, moBan, dongBan);
@@ -679,7 +682,9 @@ public class SuKienService {
         Timestamp dongBan = parseTimestampOrThrow("Thời gian đóng bán", dto.getThoiGianDongBan());
         String trangThai = normalizeNullable(dto.getTrangThaiSK());
 
-        validateTrangThai(trangThai);
+        if (trangThai != null) {
+            validateTrangThai(trangThai);
+        }
         validateThoiGian(batDau, ketThuc, moBan, dongBan);
         validateDiaDiemDuocChon(dto.getMaDiaDiem());
         List<BanToChucThanhVienDTO> banToChuc = parseBanToChucFromDto(dto);

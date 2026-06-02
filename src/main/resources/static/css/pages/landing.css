@@ -128,7 +128,7 @@
 
 .quick-path-grid {
     grid-template-columns: repeat(2, 1fr);
-    margin: 10px 0 76px;
+    margin: 10px 0 56px;
 }
 
 .quick-path-card {
@@ -195,7 +195,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 26px;
-    margin: 86px 0;
+    margin: 64px 0;
     padding: 34px;
     border-radius: 30px;
     color: #fff;
@@ -728,7 +728,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin: 12px 0 78px;
+    margin: 12px 0 56px;
 }
 
 .trust-card {
@@ -770,7 +770,7 @@
 }
 
 .landing-section {
-    margin: 78px 0;
+    margin: 64px 0;
 }
 
 .section-heading {
@@ -881,7 +881,7 @@
     display: grid;
     grid-template-columns: 1.05fr 0.95fr;
     gap: 18px;
-    margin: 88px 0;
+    margin: 64px 0;
 }
 
 .audience-card {

@@ -203,27 +203,27 @@
                         <input type="hidden" id="m_hinhAnhThumb" name="hinhAnhThumb">
                         <div class="image-upload-grid">
                             <div class="form-group image-upload-group">
-                                <label>Hình ảnh chính</label>
+                                <label>Hình ảnh chính (banner ngang 16:9, dùng ở trang chi tiết sự kiện)</label>
                                 <label class="image-upload-card" for="m_hinhAnhFile">
-                                    <span id="preview_hinhAnh" class="image-preview image-preview-empty">
-                                        <span>Chưa có ảnh</span>
+                                    <span id="preview_hinhAnh" class="image-preview image-preview-empty image-preview-banner">
+                                        <span>Chưa có ảnh banner</span>
                                     </span>
                                     <span class="image-upload-meta">
                                         <span class="image-upload-action"><i class="fa-solid fa-upload"></i> Chọn ảnh</span>
-                                        <small>jpg, jpeg, png, webp</small>
+                                        <small>Khuyến nghị 1600x900px hoặc 1920x1080px.</small>
                                     </span>
                                 </label>
                                 <input type="file" id="m_hinhAnhFile" name="hinhAnhFile" accept="image/*" class="file-input">
                             </div>
                             <div class="form-group image-upload-group">
-                                <label>Hình ảnh thumbnail</label>
+                                <label>Hình ảnh thumbnail (ảnh card 4:3 hoặc 3:2, dùng ở danh sách sự kiện)</label>
                                 <label class="image-upload-card" for="m_hinhAnhThumbFile">
-                                    <span id="preview_hinhAnhThumb" class="image-preview image-preview-empty">
-                                        <span>Chưa có ảnh</span>
+                                    <span id="preview_hinhAnhThumb" class="image-preview image-preview-empty image-preview-thumb">
+                                        <span>Chưa có ảnh thumbnail</span>
                                     </span>
                                     <span class="image-upload-meta">
                                         <span class="image-upload-action"><i class="fa-solid fa-upload"></i> Chọn ảnh</span>
-                                        <small>jpg, jpeg, png, webp</small>
+                                        <small>Khuyến nghị 800x600px hoặc 1200x800px.</small>
                                     </span>
                                 </label>
                                 <input type="file" id="m_hinhAnhThumbFile" name="hinhAnhThumbFile" accept="image/*" class="file-input">
@@ -250,13 +250,12 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Ban tổ chức sự kiện</label>
-                                <input type="hidden" id="m_maNV" name="maNV">
-                                <input type="hidden" id="m_banToChucJson" name="banToChucJson">
-                                <div id="organizerList" style="display:flex; flex-direction:column; gap:8px;"></div>
-                                <button type="button" class="btn-filter" onclick="addOrganizerRow()" style="margin-top:8px;">
-                                    <i class="fa-solid fa-user-plus"></i> Thêm thành viên
-                                </button>
+                                <label for="m_loaiSoDo">Loại sơ đồ vé <span class="required">*</span></label>
+                                <select id="m_loaiSoDo" name="loaiSoDo" class="form-control" required>
+                                    <option value="">-- Chọn loại sơ đồ vé --</option>
+                                    <option value="NGOI_THEO_GHE">Ngồi theo ghế</option>
+                                    <option value="DUNG_THEO_KHU">Đứng theo khu</option>
+                                </select>
                             </div>
                             <div class="form-group span-2 autocomplete-group">
                                 <label for="m_tenLoaiSK">Loại sự kiện <span class="required">*</span></label>
@@ -269,28 +268,20 @@
                         </div>
                     </section>
 
-                    <section class="form-section">
+                    <section class="form-section organizer-section">
                         <div class="form-section-title">
-                            <i class="fa-solid fa-toggle-on"></i>
-                            <h4>Trạng thái</h4>
+                            <i class="fa-solid fa-users"></i>
+                            <h4>Ban tổ chức sự kiện</h4>
                         </div>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="m_tongSoVe">Tổng số vé</label>
-                                <input type="number" id="m_tongSoVe" name="tongSoVe" value="0" class="form-control" readonly
-                                       title="Tổng số vé được cập nhật từ sơ đồ ghế, không chỉnh ở form thông tin sự kiện.">
-                            </div>
-                            <div class="form-group">
-                                <label for="m_trangThaiSK">Trạng thái</label>
-                                <select id="m_trangThaiSK" name="trangThaiSK" class="form-control">
-                                    <option value="Chưa mở bán">Chưa mở bán</option>
-                                    <option value="Đang mở bán">Đang mở bán</option>
-                                    <option value="Đã kết thúc">Đã kết thúc</option>
-                                    <option value="Đã hủy">Đã hủy</option>
-                                    <option value="Tạm ngưng">Tạm ngưng</option>
-                                </select>
-                            </div>
+                        <input type="hidden" id="m_maNV" name="maNV">
+                        <input type="hidden" id="m_banToChucJson" name="banToChucJson">
+                        <div id="organizerEmpty" class="organizer-empty">
+                            Chưa có thành viên ban tổ chức. Hãy thêm ít nhất một người phụ trách chính.
                         </div>
+                        <div id="organizerList" class="organizer-list"></div>
+                        <button type="button" class="btn-filter organizer-add-btn" onclick="addOrganizerRow()">
+                            <i class="fa-solid fa-user-plus"></i> Thêm thành viên
+                        </button>
                     </section>
                 </div>
                 <div class="modal-footer">
@@ -357,12 +348,10 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="s_maSK">
-                <div style="margin-bottom: 14px;">
-                    <label style="font-size:12px; color:#64748b; font-weight:700;">Loại sơ đồ</label>
-                    <select id="s_loaiSoDo" class="form-control" onchange="handleStageTypeChange(); previewStage();">
-                        <option value="NGOI_THEO_GHE">Ngồi theo ghế</option>
-                        <option value="DUNG_THEO_KHU">Đứng theo khu</option>
-                    </select>
+                <input type="hidden" id="s_loaiSoDo">
+                <div class="stage-type-summary">
+                    <span>Loại sơ đồ vé</span>
+                    <strong id="s_loaiSoDoLabel">Ngồi theo ghế</strong>
                 </div>
                 
                 <div style="display:flex; gap: 20px; align-items: stretch;">
@@ -445,7 +434,7 @@
 
             if (!src) {
                 const placeholder = document.createElement('span');
-                placeholder.textContent = 'Chưa có ảnh';
+                placeholder.textContent = previewId === 'preview_hinhAnh' ? 'Chưa có ảnh banner' : 'Chưa có ảnh thumbnail';
                 preview.appendChild(placeholder);
                 return;
             }
@@ -623,6 +612,8 @@
             document.getElementById('m_maSK').value = '';
             document.getElementById('m_moTa').value = '';
             document.getElementById('m_tags').value = '';
+            document.getElementById('m_loaiSoDo').disabled = false;
+            document.getElementById('m_loaiSoDo').value = '';
             resetImageUploads();
             resetLoaiSK();
             resetOrganizerRows();
@@ -671,14 +662,14 @@
                     document.getElementById('m_tenSK').value = d.tenSK || '';
                     document.getElementById('m_moTaNgan').value = d.moTaNgan || '';
                     document.getElementById('m_moTa').value = d.moTa || '';
-                    document.getElementById('m_tongSoVe').value = d.tongSoVe || 0;
-                    document.getElementById('m_trangThaiSK').value = d.trangThaiSK || 'Chưa mở bán';
                     document.getElementById('m_hinhAnh').value = d.hinhAnh || '';
                     document.getElementById('m_hinhAnhThumb').value = d.hinhAnhThumb || '';
                     setImagePreview('preview_hinhAnh', d.hinhAnh || '');
                     setImagePreview('preview_hinhAnhThumb', d.hinhAnhThumb || '');
                     document.getElementById('m_tags').value = d.tags || '';
                     document.getElementById('m_maDiaDiem').value = d.maDiaDiem || '';
+                    document.getElementById('m_loaiSoDo').value = d.loaiSoDo || 'NGOI_THEO_GHE';
+                    document.getElementById('m_loaiSoDo').disabled = Number(d.tongSoVe || 0) > 0;
                     document.getElementById('m_maLoaiSK').value = d.maLoaiSK || '';
                     document.getElementById('m_tenLoaiSK').value = d.tenLoaiSK || '';
                     resetOrganizerRows(d.banToChuc && d.banToChuc.length ? d.banToChuc : [{
@@ -717,7 +708,6 @@
         function addOrganizerRow(member = {}) {
             const row = document.createElement('div');
             row.className = 'organizer-row';
-            row.style.cssText = 'display:grid; grid-template-columns: 1.2fr 1fr 1fr auto auto; gap:8px; align-items:center;';
             const options = ['<option value="">-- Chọn nhân viên --</option>']
                 .concat((nhanVienOptions || []).map(nv => {
                     const selected = nv.MANV === member.maNV ? 'selected' : '';
@@ -725,30 +715,50 @@
                 }))
                 .join('');
             row.innerHTML = `
-                <select class="org-maNV form-control">${options}</select>
-                <select class="org-role form-control">
-                    <option value="Trưởng ban tổ chức">Trưởng ban tổ chức</option>
-                    <option value="Phụ trách chính">Phụ trách chính</option>
-                    <option value="Thành viên ban tổ chức">Thành viên ban tổ chức</option>
-                    <option value="Soát vé">Soát vé</option>
-                </select>
-                <input class="org-note form-control" type="text" placeholder="Ghi chú" value="${escapeAttr(member.ghiChu || '')}">
-                <label style="display:flex; align-items:center; gap:4px; font-size:12px;">
-                    <input class="org-primary" type="checkbox"> Chính
+                <div class="organizer-field organizer-employee">
+                    <label>Nhân viên</label>
+                    <select class="org-maNV form-control">${options}</select>
+                </div>
+                <div class="organizer-field organizer-role">
+                    <label>Vai trò</label>
+                    <select class="org-role form-control">
+                        <option value="Trưởng ban tổ chức">Trưởng ban tổ chức</option>
+                        <option value="Phụ trách chính">Phụ trách chính</option>
+                        <option value="Thành viên ban tổ chức">Thành viên ban tổ chức</option>
+                        <option value="Soát vé">Soát vé</option>
+                    </select>
+                </div>
+                <div class="organizer-field organizer-note">
+                    <label>Ghi chú</label>
+                    <input class="org-note form-control" type="text" placeholder="Ghi chú" value="${escapeAttr(member.ghiChu || '')}">
+                </div>
+                <label class="organizer-primary">
+                    <input class="org-primary" type="checkbox"> <span>Chính</span>
                 </label>
                 <button type="button" class="btn-action btn-delete" title="Xóa"><i class="fa-solid fa-trash"></i></button>
             `;
             row.querySelector('.org-role').value = member.vaiTroTrongSuKien || 'Thành viên ban tổ chức';
             row.querySelector('.org-primary').checked = member.laVaiTroChinh === true || member.laVaiTroChinh === 'true';
-            row.querySelector('button').addEventListener('click', () => row.remove());
+            row.querySelector('button').addEventListener('click', () => {
+                row.remove();
+                updateOrganizerEmptyState();
+            });
             organizerList.appendChild(row);
+            updateOrganizerEmptyState();
         }
 
         function resetOrganizerRows(members = null) {
             organizerList.innerHTML = '';
             const rows = members && members.length ? members : [{}];
             rows.forEach(member => addOrganizerRow(member));
+            updateOrganizerEmptyState();
             serializeOrganizerRows(false);
+        }
+
+        function updateOrganizerEmptyState() {
+            const empty = document.getElementById('organizerEmpty');
+            if (!empty) return;
+            empty.hidden = document.querySelectorAll('.organizer-row').length > 0;
         }
 
         function serializeOrganizerRows(showAlert = true) {
@@ -842,7 +852,7 @@
             fetch('/sukien/api/' + maSK + '/so-do-ghe')
                 .then(r => r.json())
                 .then(d => {
-                    document.getElementById('s_loaiSoDo').value = d.loaiSoDo || 'NGOI_THEO_GHE';
+                    setStageType(d.loaiSoDo || 'NGOI_THEO_GHE');
                     if (d.areas && d.areas.length > 0) {
                         d.areas.forEach(area => {
                             addZoneForm(
@@ -912,6 +922,13 @@
 
         function currentStageType() {
             return document.getElementById('s_loaiSoDo')?.value || 'NGOI_THEO_GHE';
+        }
+
+        function setStageType(type) {
+            const normalized = type === 'DUNG_THEO_KHU' ? 'DUNG_THEO_KHU' : 'NGOI_THEO_GHE';
+            document.getElementById('s_loaiSoDo').value = normalized;
+            document.getElementById('s_loaiSoDoLabel').textContent =
+                normalized === 'DUNG_THEO_KHU' ? 'Đứng theo khu' : 'Ngồi theo ghế';
         }
 
         function handleStageTypeChange() {
