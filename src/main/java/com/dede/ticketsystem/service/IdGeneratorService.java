@@ -49,6 +49,10 @@ public class IdGeneratorService {
         return nextId("KV", "KHUVUC", "MaKhuVuc");
     }
 
+    public String nextDiaDiemId() {
+        return nextId("DD", "DIADIEM", "MaDiaDiem");
+    }
+
     public String nextGheId() {
         return nextId("GHE", "GHENGOI", "MaGhe");
     }

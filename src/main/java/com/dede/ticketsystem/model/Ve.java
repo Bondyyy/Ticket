@@ -33,6 +33,9 @@ public class Ve {
     @Column(name = "MaGhe", length = 50)
     private String maGhe;
 
+    @Column(name = "MaKhuVuc", length = 50)
+    private String maKhuVuc;
+
     @Column(name = "MaSK", length = 50)
     private String maSK;
 
@@ -77,6 +80,9 @@ public class Ve {
 
     public String getMaGhe() { return maGhe; }
     public void setMaGhe(String maGhe) { this.maGhe = maGhe; }
+
+    public String getMaKhuVuc() { return maKhuVuc; }
+    public void setMaKhuVuc(String maKhuVuc) { this.maKhuVuc = maKhuVuc; }
 
     public String getMaSK() { return maSK; }
     public void setMaSK(String maSK) { this.maSK = maSK; }

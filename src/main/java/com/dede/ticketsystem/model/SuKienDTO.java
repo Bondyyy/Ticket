@@ -18,6 +18,8 @@ public class SuKienDTO {
     private String maLoaiSK;
     private String maDiaDiem;
     private String maNV;
+    private String loaiSoDo;
+    private String banToChucJson;
 
     // Getters and Setters
     public String getMaSK() { return maSK; }
@@ -70,4 +72,10 @@ public class SuKienDTO {
 
     public String getMaNV() { return maNV; }
     public void setMaNV(String maNV) { this.maNV = maNV; }
+
+    public String getLoaiSoDo() { return loaiSoDo; }
+    public void setLoaiSoDo(String loaiSoDo) { this.loaiSoDo = loaiSoDo; }
+
+    public String getBanToChucJson() { return banToChucJson; }
+    public void setBanToChucJson(String banToChucJson) { this.banToChucJson = banToChucJson; }
 }

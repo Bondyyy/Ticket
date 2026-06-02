@@ -89,6 +89,61 @@ public class BookingController {
         }
     }
 
+    @PostMapping("/lock-zone-tickets")
+    public ResponseEntity<?> lockZoneTickets(@RequestBody Map<String, Object> payload, jakarta.servlet.http.HttpServletRequest request) {
+        try {
+            String maKH = sessionService.getCurrentMaKH();
+            String rateLimitKey = maKH != null ? maKH : request.getRemoteAddr();
+            if (!rateLimitService.isAllowed(rateLimitKey)) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .body(Map.of("success", false, "message", "Bạn thao tác quá nhanh, vui lòng thử lại sau."));
+            }
+
+            if (!sessionService.isLoggedIn()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("success", false, "message", "Bạn cần đăng nhập để đặt vé", "redirect", "/dang-nhap"));
+            }
+            if (!sessionService.hasRole("CUSTOMER")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("success", false, "message", "Bạn không có quyền truy cập chức năng này"));
+            }
+            if (maKH == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("success", false, "message", "Tài khoản của bạn chưa có hồ sơ Khách hàng. Vui lòng liên hệ Admin.", "redirect", "/dang-nhap"));
+            }
+
+            String maSK = (String) payload.get("maSK");
+            String maKhuVuc = (String) payload.get("maKhuVuc");
+            String queueToken = (String) payload.get("queueToken");
+            int soLuong = parsePositiveInt(payload.get("soLuong"));
+
+            if (maSK == null || maSK.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Mã sự kiện không được trống!"));
+            }
+            if (maKhuVuc == null || maKhuVuc.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Mã khu vực không được trống!"));
+            }
+
+            if (queueService.shouldQueue(maSK)) {
+                if (queueToken == null || !queueService.validateQueueToken(queueToken, maKH, maSK)) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("success", false, "message", "Bạn cần vào hàng đợi trước khi đặt vé."));
+                }
+            }
+
+            String orderId = bookingService.lockZoneTickets(maSK, maKhuVuc, soLuong, maKH, queueToken);
+
+            if (queueService.shouldQueue(maSK) && queueToken != null) {
+                queueService.consumeToken(queueToken, maKH, maSK);
+            }
+
+            return ResponseEntity.ok(Map.of("success", true, "message", "Đã giữ vé khu đứng thành công", "redirect", "/thanh-toan?orderId=" + orderId));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
     @Autowired
     private com.dede.ticketsystem.service.PaymentService paymentService;
 
@@ -166,5 +221,15 @@ public class BookingController {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private int parsePositiveInt(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            return Integer.parseInt(text.trim());
+        }
+        throw new IllegalArgumentException("Số lượng vé phải lớn hơn 0!");
     }
 }

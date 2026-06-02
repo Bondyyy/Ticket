@@ -136,7 +136,7 @@ public class CustomerProfileController {
         }
 
         // Lấy thông tin Ghế và Khu Vực
-        Ghe ghe = gheRepository.findById(ve.getMaGhe()).orElse(null);
+        Ghe ghe = ve.getMaGhe() != null ? gheRepository.findById(ve.getMaGhe()).orElse(null) : null;
         if (ghe != null) {
             dto.setTenGhe(ghe.getTenGhe());
             KhuVuc kv = khuVucRepository.findById(ghe.getMaKhuVuc()).orElse(null);
@@ -146,8 +146,13 @@ public class CustomerProfileController {
                 dto.setTenKhuVuc("Khu vực không xác định");
             }
         } else {
-            dto.setTenGhe("Vé thường (Không số ghế)");
-            dto.setTenKhuVuc("Phổ thông");
+            dto.setTenGhe("Không áp dụng ghế");
+            if (ve.getMaKhuVuc() != null) {
+                KhuVuc kv = khuVucRepository.findById(ve.getMaKhuVuc()).orElse(null);
+                dto.setTenKhuVuc(kv != null ? kv.getTenKhuVuc() : "Khu đứng");
+            } else {
+                dto.setTenKhuVuc("Khu đứng");
+            }
         }
 
         // Tạo QR Payload và Base64 Image

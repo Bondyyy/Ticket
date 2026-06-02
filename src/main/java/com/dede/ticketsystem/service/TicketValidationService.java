@@ -55,7 +55,9 @@ public class TicketValidationService {
             String status = "Vé không tìm thấy";
             saveScanHistory(status, normalizedCongSoat, normalizedNguon, thoiGianQuet, null, maNV);
             long duration = System.currentTimeMillis() - startTime;
-            return new ValidationResult(false, status, null, null, null, null, duration, thoiGianQuet, normalizedMaSK);
+            ValidationResult result = new ValidationResult(false, status, null, null, null, null, duration, thoiGianQuet, normalizedMaSK);
+            result.setNguonDuLieu(normalizedNguon);
+            return result;
         }
 
         Ve lockedVe = veOpt.get();
@@ -73,6 +75,12 @@ public class TicketValidationService {
                 if (kv != null) {
                     zoneName = kv.getTenKhuVuc();
                 }
+            }
+        } else if (lockedVe.getMaKhuVuc() != null) {
+            KhuVuc kv = khuVucRepository.findById(lockedVe.getMaKhuVuc()).orElse(null);
+            if (kv != null) {
+                seatName = "Không áp dụng ghế";
+                zoneName = kv.getTenKhuVuc();
             }
         }
 
@@ -111,7 +119,9 @@ public class TicketValidationService {
         saveScanHistory(status, normalizedCongSoat, normalizedNguon, thoiGianQuet, lockedVe.getMaVe(), maNV);
 
         long duration = System.currentTimeMillis() - startTime;
-        return new ValidationResult(success, status, lockedVe.getMaVe(), seatName, zoneName, ticketOwner, duration, thoiGianQuet, lockedVe.getMaSK());
+        ValidationResult result = new ValidationResult(success, status, lockedVe.getMaVe(), seatName, zoneName, ticketOwner, duration, thoiGianQuet, lockedVe.getMaSK());
+        result.setNguonDuLieu(normalizedNguon);
+        return result;
     }
 
     private void saveScanHistory(String status, String congSoat, String nguonDuLieu, Timestamp thoiGianQuet, String maVe, String maNV) {

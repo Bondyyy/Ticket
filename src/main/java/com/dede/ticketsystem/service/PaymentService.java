@@ -105,4 +105,27 @@ public class PaymentService {
             }
         }
     }
+
+    @Transactional(readOnly = true)
+    public boolean canRetry(String orderId, String maKH) {
+        DonHang dh = donHangRepository.findById(orderId).orElse(null);
+        if (dh == null || maKH == null || !maKH.equals(dh.getMaKH())) {
+            return false;
+        }
+        if (!"Chờ thanh toán".equalsIgnoreCase(dh.getTrangThaiDonHang())) {
+            return false;
+        }
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        if (dh.getThoiGianHetHan() != null && now.after(dh.getThoiGianHetHan())) {
+            return false;
+        }
+        return remainingAttempts(orderId) > 0;
+    }
+
+    @Transactional(readOnly = true)
+    public int remainingAttempts(String orderId) {
+        Integer maxLanThuLai = giaoDichThanhToanRepository.findMaxLanThuLaiByMaDonHang(orderId);
+        int tried = maxLanThuLai != null ? maxLanThuLai : 0;
+        return Math.max(0, 3 - tried);
+    }
 }

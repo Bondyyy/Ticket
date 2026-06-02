@@ -1,6 +1,9 @@
 package com.dede.ticketsystem.service;
 
+import com.dede.ticketsystem.model.BanToChucThanhVienDTO;
+import com.dede.ticketsystem.model.DiaDiem;
 import com.dede.ticketsystem.model.SuKien;
+import com.dede.ticketsystem.model.SuKienBanToChuc;
 import com.dede.ticketsystem.model.SuKienDTO;
 import com.dede.ticketsystem.model.ThietLapSanKhauDTO;
 import com.dede.ticketsystem.model.Ve;
@@ -10,10 +13,18 @@ import com.dede.ticketsystem.model.SeatAreaDTO;
 import com.dede.ticketsystem.model.SeatCellDTO;
 import com.dede.ticketsystem.model.SeatMapDTO;
 import com.dede.ticketsystem.model.SeatRowDTO;
+import com.dede.ticketsystem.repository.DiaDiemRepository;
+import com.dede.ticketsystem.repository.DonHangChiTietRepository;
 import com.dede.ticketsystem.repository.SuKienRepository;
 import com.dede.ticketsystem.repository.VeRepository;
 import com.dede.ticketsystem.repository.KhuVucRepository;
 import com.dede.ticketsystem.repository.GheRepository;
+import com.dede.ticketsystem.repository.NguoiDungRepository;
+import com.dede.ticketsystem.repository.NhanVienRepository;
+import com.dede.ticketsystem.repository.SuKienBanToChucRepository;
+import com.dede.ticketsystem.util.DateTimeUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +39,14 @@ import java.util.ArrayList;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class SuKienService {
@@ -58,33 +71,56 @@ public class SuKienService {
     private final VeRepository veRepository;
     private final KhuVucRepository khuVucRepository;
     private final GheRepository gheRepository;
+    private final DiaDiemRepository diaDiemRepository;
+    private final NhanVienRepository nhanVienRepository;
+    private final NguoiDungRepository nguoiDungRepository;
+    private final SuKienBanToChucRepository suKienBanToChucRepository;
+    private final DonHangChiTietRepository donHangChiTietRepository;
     private final IdGeneratorService idGeneratorService;
+    private final ObjectMapper objectMapper;
     private final Path eventUploadDir;
 
     public SuKienService(SuKienRepository suKienRepository,
                          VeRepository veRepository,
                          KhuVucRepository khuVucRepository,
                          GheRepository gheRepository,
+                         DiaDiemRepository diaDiemRepository,
+                         NhanVienRepository nhanVienRepository,
+                         NguoiDungRepository nguoiDungRepository,
+                         SuKienBanToChucRepository suKienBanToChucRepository,
+                         DonHangChiTietRepository donHangChiTietRepository,
                          IdGeneratorService idGeneratorService,
+                         ObjectMapper objectMapper,
                          @Value("${app.upload.events-dir:uploads/events}") String eventUploadDir) {
         this.suKienRepository = suKienRepository;
         this.veRepository = veRepository;
         this.khuVucRepository = khuVucRepository;
         this.gheRepository = gheRepository;
+        this.diaDiemRepository = diaDiemRepository;
+        this.nhanVienRepository = nhanVienRepository;
+        this.nguoiDungRepository = nguoiDungRepository;
+        this.suKienBanToChucRepository = suKienBanToChucRepository;
+        this.donHangChiTietRepository = donHangChiTietRepository;
         this.idGeneratorService = idGeneratorService;
+        this.objectMapper = objectMapper;
         this.eventUploadDir = Paths.get(eventUploadDir).toAbsolutePath().normalize();
     }
 
     public List<SuKien> layTatCa() {
+        refreshAllTrangThaiTheoThoiGian();
         return suKienRepository.findAll();
     }
 
     public List<SuKien> timKiem(String keyword, String trangThai) {
+        refreshAllTrangThaiTheoThoiGian();
         return suKienRepository.search(keyword, trangThai);
     }
 
     public Optional<SuKien> timTheoMa(String maSK) {
-        return suKienRepository.findById(maSK);
+        return suKienRepository.findById(maSK).map(sk -> {
+            refreshTrangThaiTheoThoiGian(sk, new Timestamp(System.currentTimeMillis()));
+            return sk;
+        });
     }
 
     public SeatMapDTO getSeatMap(String maSK) {
@@ -150,33 +186,20 @@ public class SuKienService {
                     khuVuc.getMauSacHienThi(),
                     khuVuc.getGiaVe(),
                     khuVuc.getSoVeToiDaPerKH(),
+                    khuVuc.getSoGheToiDa(),
+                    khuVuc.getSoGheDaBan(),
+                    khuVuc.getTrangThai(),
                     rows
             ));
         }
 
-        return new SeatMapDTO(sk.getMaSK(), sk.getTenSK(), areas);
+        return new SeatMapDTO(sk.getMaSK(), sk.getTenSK(), sk.getLoaiSoDo(), areas);
     }
 
     private Timestamp parseTimestamp(String timeStr) {
         if (timeStr == null || timeStr.isBlank()) return null;
         try {
-            String clean = timeStr.trim()
-                    .replace("T", " ")
-                    .replace("Z", "");
-
-            if (clean.contains(".")) {
-                clean = clean.split("\\.")[0];
-            }
-
-            if (clean.length() == 16) {
-                clean += ":00";
-            }
-
-            if (clean.length() > 19) {
-                clean = clean.substring(0, 19);
-            }
-
-            return Timestamp.valueOf(clean);
+            return DateTimeUtils.parseDateTimeLocalToMinute(timeStr);
         } catch (Exception e) {
             System.err.println("Không thể parse timestamp: " + timeStr + " - " + e.getMessage());
             return null;
@@ -265,13 +288,233 @@ public class SuKienService {
             throw new RuntimeException("Thời gian kết thúc phải sau thời gian bắt đầu.");
         }
 
-        if (moBan != null && dongBan != null && moBan.after(dongBan)) {
-            throw new RuntimeException("Thời gian mở bán phải trước hoặc bằng thời gian đóng bán.");
+        if (moBan != null && dongBan != null && !moBan.before(dongBan)) {
+            throw new RuntimeException("Thời gian mở bán phải trước thời gian đóng bán.");
         }
 
         if (dongBan != null && batDau != null && dongBan.after(batDau)) {
             throw new RuntimeException("Thời gian đóng bán phải trước hoặc bằng thời gian bắt đầu.");
         }
+    }
+
+    public String deriveTrangThaiTheoThoiGian(SuKien sk, Timestamp now) {
+        if (sk == null) {
+            return "Chưa mở bán";
+        }
+
+        String current = normalizeNullable(sk.getTrangThaiSK());
+        if ("Đã hủy".equals(current) || "Tạm ngưng".equals(current)) {
+            return current;
+        }
+
+        Timestamp effectiveNow = now != null ? DateTimeUtils.truncateToMinute(now) : DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis()));
+        Timestamp moBan = DateTimeUtils.truncateToMinute(sk.getThoiGianMoBan());
+        Timestamp dongBan = DateTimeUtils.truncateToMinute(sk.getThoiGianDongBan());
+
+        if (moBan == null || dongBan == null) {
+            return current != null && TRANG_THAI_HOP_LE.contains(current) ? current : "Chưa mở bán";
+        }
+        if (effectiveNow.before(moBan)) {
+            return "Chưa mở bán";
+        }
+        if (!effectiveNow.before(moBan) && !effectiveNow.after(dongBan)) {
+            return "Đang mở bán";
+        }
+        return "Đã kết thúc";
+    }
+
+    public SuKien refreshTrangThaiTheoThoiGian(SuKien sk, Timestamp now) {
+        if (sk == null) {
+            return null;
+        }
+        String derived = deriveTrangThaiTheoThoiGian(sk, now);
+        if (!derived.equals(sk.getTrangThaiSK())) {
+            sk.setTrangThaiSK(derived);
+            sk.setCapNhatLanCuoi(DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis())));
+            return suKienRepository.save(sk);
+        }
+        return sk;
+    }
+
+    private void refreshAllTrangThaiTheoThoiGian() {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        for (SuKien sk : suKienRepository.findAll()) {
+            refreshTrangThaiTheoThoiGian(sk, now);
+        }
+    }
+
+    private String resolveTrangThaiFromDto(String dtoTrangThai, SuKien sk, Timestamp now) {
+        String requested = normalizeNullable(dtoTrangThai);
+        if ("Đã hủy".equals(requested) || "Tạm ngưng".equals(requested)) {
+            return requested;
+        }
+        return deriveTrangThaiTheoThoiGian(sk, now);
+    }
+
+    private String normalizeLoaiSoDo(String loaiSoDo) {
+        String clean = normalizeNullable(loaiSoDo);
+        if (clean == null) {
+            return "NGOI_THEO_GHE";
+        }
+        if ("DUNG_THEO_KHU".equals(clean) || "NGOI_THEO_GHE".equals(clean)) {
+            return clean;
+        }
+        throw new RuntimeException("Loại sơ đồ không hợp lệ.");
+    }
+
+    private void validateDiaDiemDuocChon(String maDiaDiem) {
+        String clean = normalizeNullable(maDiaDiem);
+        if (clean == null) {
+            return;
+        }
+        DiaDiem diaDiem = diaDiemRepository.findById(clean)
+                .orElseThrow(() -> new RuntimeException("Địa điểm không tồn tại."));
+        if ("Ngừng hoạt động".equalsIgnoreCase(normalizeNullable(diaDiem.getTrangThai()))) {
+            throw new RuntimeException("Không thể chọn địa điểm đã ngừng hoạt động.");
+        }
+    }
+
+    private List<BanToChucThanhVienDTO> parseBanToChucFromDto(SuKienDTO dto) {
+        String json = normalizeNullable(dto.getBanToChucJson());
+        if (json != null) {
+            try {
+                return objectMapper.readValue(json, new TypeReference<List<BanToChucThanhVienDTO>>() {});
+            } catch (Exception e) {
+                throw new RuntimeException("Danh sách ban tổ chức không hợp lệ.");
+            }
+        }
+
+        String legacyMaNV = normalizeNullable(dto.getMaNV());
+        if (legacyMaNV == null) {
+            return List.of();
+        }
+
+        BanToChucThanhVienDTO legacy = new BanToChucThanhVienDTO();
+        legacy.setMaNV(legacyMaNV);
+        legacy.setVaiTroTrongSuKien("Phụ trách chính");
+        legacy.setLaVaiTroChinh(true);
+        return List.of(legacy);
+    }
+
+    private void validateBanToChucMembers(List<BanToChucThanhVienDTO> members) {
+        if (members == null || members.isEmpty()) {
+            throw new RuntimeException("Sự kiện phải có ít nhất 1 thành viên ban tổ chức.");
+        }
+
+        Set<String> maNVSet = new HashSet<>();
+        boolean hasPrimary = false;
+
+        for (BanToChucThanhVienDTO member : members) {
+            String maNV = normalizeNullable(member.getMaNV());
+            if (maNV == null) {
+                throw new RuntimeException("Thành viên ban tổ chức phải chọn nhân viên.");
+            }
+            if (!maNVSet.add(maNV)) {
+                throw new RuntimeException("Không được chọn trùng nhân viên trong ban tổ chức.");
+            }
+            if (!nhanVienRepository.existsById(maNV)) {
+                throw new RuntimeException("Nhân viên " + maNV + " không tồn tại.");
+            }
+            if (isVaiTroChinh(member)) {
+                hasPrimary = true;
+            }
+        }
+
+        if (!hasPrimary) {
+            throw new RuntimeException("Ban tổ chức phải có ít nhất 1 vai trò chính hoặc Trưởng ban tổ chức.");
+        }
+    }
+
+    private boolean isVaiTroChinh(BanToChucThanhVienDTO member) {
+        if (Boolean.TRUE.equals(member.getLaVaiTroChinh())) {
+            return true;
+        }
+        String role = normalizeNullable(member.getVaiTroTrongSuKien());
+        return role != null && (role.equalsIgnoreCase("Trưởng ban tổ chức") || role.equalsIgnoreCase("Phụ trách chính"));
+    }
+
+    private String resolvePrimaryMaNV(List<BanToChucThanhVienDTO> members) {
+        if (members == null || members.isEmpty()) {
+            return null;
+        }
+        return members.stream()
+                .filter(this::isVaiTroChinh)
+                .map(member -> normalizeNullable(member.getMaNV()))
+                .filter(maNV -> maNV != null)
+                .findFirst()
+                .orElse(normalizeNullable(members.get(0).getMaNV()));
+    }
+
+    private void syncBanToChuc(String maSK, List<BanToChucThanhVienDTO> members) {
+        validateBanToChucMembers(members);
+
+        Timestamp now = DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis()));
+        List<String> incomingMaNV = members.stream()
+                .map(member -> normalizeNullable(member.getMaNV()))
+                .collect(Collectors.toList());
+
+        suKienBanToChucRepository.deleteByMaSKAndMaNVNotIn(maSK, incomingMaNV);
+
+        for (BanToChucThanhVienDTO member : members) {
+            String maNV = normalizeNullable(member.getMaNV());
+            SuKienBanToChuc item = suKienBanToChucRepository.findByMaSKAndMaNV(maSK, maNV)
+                    .orElseGet(() -> {
+                        SuKienBanToChuc created = new SuKienBanToChuc();
+                        created.setMaSK(maSK);
+                        created.setMaNV(maNV);
+                        created.setThoiGianTao(now);
+                        return created;
+                    });
+            String role = normalizeNullable(member.getVaiTroTrongSuKien());
+            item.setVaiTroTrongSuKien(role != null ? role : "Thành viên ban tổ chức");
+            item.setGhiChu(normalizeNullable(member.getGhiChu()));
+            item.setLaVaiTroChinh(isVaiTroChinh(member));
+            item.setCapNhatLanCuoi(now);
+            suKienBanToChucRepository.save(item);
+        }
+    }
+
+    public List<Map<String, Object>> getBanToChucDetail(String maSK) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SuKienBanToChuc item : suKienBanToChucRepository.findByMaSKOrderByLaVaiTroChinhDescIdAsc(maSK)) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", item.getId());
+            row.put("maNV", item.getMaNV());
+            row.put("vaiTroTrongSuKien", item.getVaiTroTrongSuKien());
+            row.put("ghiChu", item.getGhiChu());
+            row.put("laVaiTroChinh", Boolean.TRUE.equals(item.getLaVaiTroChinh()));
+            nhanVienRepository.findById(item.getMaNV()).ifPresent(nv -> {
+                row.put("maND", nv.getMaND());
+                if (nv.getMaND() != null) {
+                    nguoiDungRepository.findById(nv.getMaND()).ifPresent(nd -> {
+                        row.put("tenNhanVien", nd.getTenTaiKhoan());
+                        row.put("email", nd.getEmail());
+                        row.put("sdt", nd.getSdt());
+                    });
+                }
+            });
+            result.add(row);
+        }
+        return result;
+    }
+
+    public Map<String, String> buildBanToChucSummaryMap(List<SuKien> events) {
+        Map<String, String> summary = new LinkedHashMap<>();
+        for (SuKien sk : events) {
+            List<Map<String, Object>> members = getBanToChucDetail(sk.getMaSK());
+            if (members.isEmpty()) {
+                summary.put(sk.getMaSK(), "Chưa phân công");
+                continue;
+            }
+
+            String lead = members.stream()
+                    .filter(member -> Boolean.TRUE.equals(member.get("laVaiTroChinh")))
+                    .map(member -> String.valueOf(member.getOrDefault("tenNhanVien", member.get("maNV"))))
+                    .findFirst()
+                    .orElse(String.valueOf(members.get(0).getOrDefault("tenNhanVien", members.get(0).get("maNV"))));
+            summary.put(sk.getMaSK(), "Trưởng ban: " + lead + " / Tổng: " + members.size());
+        }
+        return summary;
     }
 
     private boolean hasUpload(MultipartFile file) {
@@ -361,6 +604,9 @@ public class SuKienService {
 
         validateTrangThai(trangThai);
         validateThoiGian(batDau, ketThuc, moBan, dongBan);
+        validateDiaDiemDuocChon(dto.getMaDiaDiem());
+        List<BanToChucThanhVienDTO> banToChuc = parseBanToChucFromDto(dto);
+        validateBanToChucMembers(banToChuc);
         String maLoaiSK = normalizeNullable(dto.getMaLoaiSK());
         if (maLoaiSK == null) {
             throw new RuntimeException("Loại sự kiện không được để trống.");
@@ -402,14 +648,16 @@ public class SuKienService {
 
         sk.setTongSoVe(dto.getTongSoVe() == null ? 0 : dto.getTongSoVe());
         sk.setSoVeDaBan(0);
-        sk.setTrangThaiSK(trangThai);
-        sk.setThoiGianTao(new Timestamp(System.currentTimeMillis()));
+        sk.setTrangThaiSK(resolveTrangThaiFromDto(trangThai, sk, new Timestamp(System.currentTimeMillis())));
+        sk.setLoaiSoDo(normalizeLoaiSoDo(dto.getLoaiSoDo()));
+        sk.setThoiGianTao(DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis())));
 
         sk.setMaLoaiSK(maLoaiSK);
         sk.setMaDiaDiem(normalizeNullable(dto.getMaDiaDiem()));
-        sk.setMaNV(normalizeNullable(dto.getMaNV()));
+        sk.setMaNV(resolvePrimaryMaNV(banToChuc));
 
         SuKien savedSk = suKienRepository.save(sk);
+        syncBanToChuc(savedSk.getMaSK(), banToChuc);
 
         // We no longer auto generate tickets here. It is moved to thietLapSanKhau.
 
@@ -433,6 +681,9 @@ public class SuKienService {
 
         validateTrangThai(trangThai);
         validateThoiGian(batDau, ketThuc, moBan, dongBan);
+        validateDiaDiemDuocChon(dto.getMaDiaDiem());
+        List<BanToChucThanhVienDTO> banToChuc = parseBanToChucFromDto(dto);
+        validateBanToChucMembers(banToChuc);
 
         SuKien sk = suKienRepository.findById(maSK)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện: " + maSK));
@@ -475,9 +726,10 @@ public class SuKienService {
 
         // Không cập nhật TongSoVe/SoVeDaBan ở route sửa thông tin sự kiện.
         // Hai số này phải đến từ sơ đồ ghế/vé hoặc nghiệp vụ bán vé.
-        sk.setTrangThaiSK(trangThai);
+        sk.setTrangThaiSK(resolveTrangThaiFromDto(trangThai, sk, new Timestamp(System.currentTimeMillis())));
+        sk.setLoaiSoDo(normalizeLoaiSoDo(dto.getLoaiSoDo() != null ? dto.getLoaiSoDo() : sk.getLoaiSoDo()));
         
-        sk.setCapNhatLanCuoi(new Timestamp(System.currentTimeMillis()));
+        sk.setCapNhatLanCuoi(DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis())));
 
         String maLoaiSK = normalizeNullable(dto.getMaLoaiSK());
         if (maLoaiSK == null) {
@@ -488,9 +740,11 @@ public class SuKienService {
         }
         sk.setMaLoaiSK(maLoaiSK);
         sk.setMaDiaDiem(normalizeNullable(dto.getMaDiaDiem()));
-        sk.setMaNV(normalizeNullable(dto.getMaNV()));
+        sk.setMaNV(resolvePrimaryMaNV(banToChuc));
 
-        return suKienRepository.save(sk);
+        SuKien saved = suKienRepository.save(sk);
+        syncBanToChuc(saved.getMaSK(), banToChuc);
+        return saved;
     }
 
     public void huySuKien(String maSK) {
@@ -532,6 +786,7 @@ public class SuKienService {
             throw e;
         }
 
+        String loaiSoDo = normalizeLoaiSoDo(dto.getLoaiSoDo() != null ? dto.getLoaiSoDo() : sk.getLoaiSoDo());
         int totalTickets = 0;
 
         List<KhuVuc> dsKhuVuc = new ArrayList<>();
@@ -544,13 +799,31 @@ public class SuKienService {
                 ThietLapSanKhauDTO.KhuVucDTO kvDto = dto.getDanhSachKhuVuc().get(k);
 
                 String maKhuVuc = idGeneratorService.nextKhuVucId();
-                int soGheToiDa = kvDto.getSoHang() * kvDto.getSoGheMoiHang();
+                int soGheToiDa;
+                if ("DUNG_THEO_KHU".equals(loaiSoDo)) {
+                    soGheToiDa = kvDto.getSucChuaKhu() != null ? kvDto.getSucChuaKhu() : 0;
+                    if (soGheToiDa <= 0) {
+                        throw new RuntimeException("Sức chứa khu đứng phải lớn hơn 0.");
+                    }
+                } else {
+                    int soHang = kvDto.getSoHang() != null ? kvDto.getSoHang() : 0;
+                    int soGheMoiHang = kvDto.getSoGheMoiHang() != null ? kvDto.getSoGheMoiHang() : 0;
+                    if (soHang <= 0 || soGheMoiHang <= 0) {
+                        throw new RuntimeException("Số hàng và ghế mỗi hàng phải lớn hơn 0.");
+                    }
+                    soGheToiDa = soHang * soGheMoiHang;
+                }
                 int soVeToiDaPerKH = kvDto.getSoVeToiDaPerKH() != null ? kvDto.getSoVeToiDaPerKH() : 4;
                 
                 KhuVuc kv = new KhuVuc(maKhuVuc, kvDto.getTenKhuVuc(), kvDto.getMauSacHienThi(), soGheToiDa, 0, soVeToiDaPerKH, kvDto.getGiaVe(), "Đang bán", maSK);
                 kv.setSoHang(kvDto.getSoHang());
                 kv.setSoGheMoiHang(kvDto.getSoGheMoiHang());
                 dsKhuVuc.add(kv);
+
+                if ("DUNG_THEO_KHU".equals(loaiSoDo)) {
+                    totalTickets += soGheToiDa;
+                    continue;
+                }
 
                 for (int i = 0; i < kvDto.getSoHang(); i++) {
                     String rowName = String.valueOf(rowLabels[i % rowLabels.length]);
@@ -573,7 +846,8 @@ public class SuKienService {
         gheRepository.saveAll(dsGhe);
 
         sk.setTongSoVe(totalTickets);
-        sk.setCapNhatLanCuoi(new Timestamp(System.currentTimeMillis()));
+        sk.setLoaiSoDo(loaiSoDo);
+        sk.setCapNhatLanCuoi(DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis())));
         suKienRepository.save(sk);
         System.out.println("DEBUG: Finished thietLapSanKhau for " + maSK + ". Total tickets: " + totalTickets);
     }

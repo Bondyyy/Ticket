@@ -2,6 +2,7 @@ package com.dede.ticketsystem.service;
 
 import com.dede.ticketsystem.model.Ghe;
 import com.dede.ticketsystem.model.DonHang;
+import com.dede.ticketsystem.model.DonHangChiTiet;
 import com.dede.ticketsystem.model.Ve;
 import com.dede.ticketsystem.model.KhuVuc;
 import com.dede.ticketsystem.model.SuKien;
@@ -13,6 +14,7 @@ import com.dede.ticketsystem.repository.KhuVucRepository;
 import com.dede.ticketsystem.repository.SuKienRepository;
 import com.dede.ticketsystem.repository.GiaoDichThanhToanRepository;
 import com.dede.ticketsystem.repository.KhachHangRepository;
+import com.dede.ticketsystem.repository.DonHangChiTietRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class BookingService {
     private final KhuVucRepository khuVucRepository;
     private final SuKienRepository suKienRepository;
     private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
+    private final DonHangChiTietRepository donHangChiTietRepository;
     private final IdGeneratorService idGeneratorService;
 
     @Autowired
@@ -53,6 +56,7 @@ public class BookingService {
                           KhuVucRepository khuVucRepository,
                           SuKienRepository suKienRepository,
                           GiaoDichThanhToanRepository giaoDichThanhToanRepository,
+                          DonHangChiTietRepository donHangChiTietRepository,
                           IdGeneratorService idGeneratorService) {
         this.gheRepository = gheRepository;
         this.donHangRepository = donHangRepository;
@@ -60,6 +64,7 @@ public class BookingService {
         this.khuVucRepository = khuVucRepository;
         this.suKienRepository = suKienRepository;
         this.giaoDichThanhToanRepository = giaoDichThanhToanRepository;
+        this.donHangChiTietRepository = donHangChiTietRepository;
         this.idGeneratorService = idGeneratorService;
     }
 
@@ -171,6 +176,92 @@ public class BookingService {
         return maDonHang;
     }
 
+    @Transactional
+    public String lockZoneTickets(String maSK, String maKhuVuc, int soLuong, String maKH, String queueToken) {
+        if (maSK == null || maSK.isBlank()) {
+            throw new RuntimeException("Mã sự kiện không được trống!");
+        }
+        if (maKhuVuc == null || maKhuVuc.isBlank()) {
+            throw new RuntimeException("Mã khu vực không được trống!");
+        }
+        if (soLuong <= 0) {
+            throw new RuntimeException("Số lượng vé phải lớn hơn 0!");
+        }
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        SuKien suKien = suKienRepository.findById(maSK)
+                .orElseThrow(() -> new RuntimeException("Sự kiện không tồn tại!"));
+        if (!"DUNG_THEO_KHU".equalsIgnoreCase(suKien.getLoaiSoDo())) {
+            throw new RuntimeException("Sự kiện này không bán vé đứng theo khu.");
+        }
+        if (!"Đang mở bán".equalsIgnoreCase(suKien.getTrangThaiSK())) {
+            throw new RuntimeException("Sự kiện hiện không trong trạng thái mở bán!");
+        }
+        if (suKien.getThoiGianMoBan() != null && now.before(suKien.getThoiGianMoBan())) {
+            throw new RuntimeException("Thời gian mở bán vé sự kiện chưa bắt đầu!");
+        }
+        if (suKien.getThoiGianDongBan() != null && now.after(suKien.getThoiGianDongBan())) {
+            throw new RuntimeException("Thời gian bán vé sự kiện đã kết thúc!");
+        }
+
+        KhuVuc kv = khuVucRepository.findByIdWithLock(maKhuVuc)
+                .orElseThrow(() -> new RuntimeException("Khu vực không tồn tại!"));
+        if (!maSK.equals(kv.getMaSK())) {
+            throw new RuntimeException("Khu vực không thuộc sự kiện đang chọn!");
+        }
+        if (!"Đang bán".equalsIgnoreCase(kv.getTrangThai())) {
+            throw new RuntimeException("Khu vực này hiện không mở bán!");
+        }
+
+        int capacity = kv.getSoGheToiDa() != null ? kv.getSoGheToiDa() : 0;
+        int sold = kv.getSoGheDaBan() != null ? kv.getSoGheDaBan() : 0;
+        int remaining = capacity - sold;
+        if (soLuong > remaining) {
+            throw new RuntimeException("Khu vực chỉ còn " + Math.max(0, remaining) + " vé.");
+        }
+
+        int maxVe = (kv.getSoVeToiDaPerKH() != null && kv.getSoVeToiDaPerKH() > 0) ? kv.getSoVeToiDaPerKH() : 4;
+        long veDaMua = donHangChiTietRepository.countPaidQuantityByCustomerAndZone(maKH, maSK, maKhuVuc);
+        if (soLuong + veDaMua > maxVe) {
+            throw new RuntimeException("Bạn đã chọn hoặc mua tổng cộng " + (soLuong + veDaMua)
+                    + " vé ở khu vực " + kv.getTenKhuVuc() + ". Giới hạn tối đa là " + maxVe + " vé!");
+        }
+
+        if (queueService.shouldQueue(maSK)) {
+            if (queueToken == null || !queueService.validateQueueToken(queueToken, maKH, maSK)) {
+                throw new RuntimeException("Bạn cần vào hàng đợi trước khi đặt vé.");
+            }
+        }
+
+        java.math.BigDecimal donGia = kv.getGiaVe() != null ? kv.getGiaVe() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal thanhTien = donGia.multiply(new java.math.BigDecimal(soLuong));
+        String maDonHang = idGeneratorService.nextDonHangId();
+        Timestamp thoiGianHetHan = new Timestamp(now.getTime() + 10 * 60 * 1000);
+
+        DonHang dh = new DonHang();
+        dh.setMaDonHang(maDonHang);
+        dh.setSoDonHang(maDonHang);
+        dh.setTongTien(thanhTien);
+        dh.setThanhTien(thanhTien);
+        dh.setTrangThaiDonHang("Chờ thanh toán");
+        dh.setThoiGianDat(now);
+        dh.setThoiGianHetHan(thoiGianHetHan);
+        dh.setCapNhatLanCuoi(now);
+        dh.setMaKH(maKH);
+        donHangRepository.save(dh);
+
+        DonHangChiTiet chiTiet = new DonHangChiTiet();
+        chiTiet.setMaDonHang(maDonHang);
+        chiTiet.setMaSK(maSK);
+        chiTiet.setMaKhuVuc(maKhuVuc);
+        chiTiet.setSoLuong(soLuong);
+        chiTiet.setDonGia(donGia);
+        chiTiet.setThanhTien(thanhTien);
+        donHangChiTietRepository.save(chiTiet);
+
+        return maDonHang;
+    }
+
     @Autowired
     private org.springframework.context.ApplicationContext applicationContext;
 
@@ -203,6 +294,7 @@ public class BookingService {
 
         // Sinh vé và cập nhật trạng thái ghế
         issueTicketsAfterPaymentSuccess(orderId);
+        issueStandingTicketsAfterPaymentSuccess(orderId);
 
         // Gửi email giả lập (LICHSUGUI_EMAIL & console)
         try {
@@ -293,6 +385,56 @@ public class BookingService {
             ghe.setMaPhienKhoa(null);
         }
         gheRepository.saveAll(gheList);
+    }
+
+    @Transactional
+    public void issueStandingTicketsAfterPaymentSuccess(String orderId) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        List<DonHangChiTiet> chiTietList = donHangChiTietRepository.findByMaDonHang(orderId);
+        for (DonHangChiTiet chiTiet : chiTietList) {
+            long existingCount = veRepository.countByMaDonHangAndMaSKAndMaKhuVucAndMaGheIsNull(
+                    orderId,
+                    chiTiet.getMaSK(),
+                    chiTiet.getMaKhuVuc()
+            );
+            int expected = chiTiet.getSoLuong() != null ? chiTiet.getSoLuong() : 0;
+            int missing = expected - (int) existingCount;
+            if (missing <= 0) {
+                continue;
+            }
+
+            KhuVuc kv = khuVucRepository.findByIdWithLock(chiTiet.getMaKhuVuc())
+                    .orElseThrow(() -> new RuntimeException("Khu vực đứng không tồn tại!"));
+            int capacity = kv.getSoGheToiDa() != null ? kv.getSoGheToiDa() : 0;
+            int sold = kv.getSoGheDaBan() != null ? kv.getSoGheDaBan() : 0;
+            if (sold + missing > capacity) {
+                throw new RuntimeException("Không đủ vé còn lại cho khu vực " + kv.getTenKhuVuc() + ".");
+            }
+
+            for (int i = 0; i < missing; i++) {
+                String maVe = idGeneratorService.nextVeId();
+                Ve ve = new Ve();
+                ve.setMaVe(maVe);
+                ve.setMaQR(buildQrCode(maVe));
+                ve.setGiaVe(chiTiet.getDonGia() != null ? chiTiet.getDonGia() : java.math.BigDecimal.ZERO);
+                ve.setTrangThaiVe("Chưa sử dụng");
+                ve.setThoiGianPhat(now);
+                ve.setMaSK(chiTiet.getMaSK());
+                ve.setMaKhuVuc(chiTiet.getMaKhuVuc());
+                ve.setMaGhe(null);
+                ve.setMaDonHang(orderId);
+                veRepository.save(ve);
+            }
+
+            kv.setSoGheDaBan(sold + missing);
+            khuVucRepository.save(kv);
+
+            SuKien sk = suKienRepository.findById(chiTiet.getMaSK()).orElse(null);
+            if (sk != null) {
+                sk.setSoVeDaBan((sk.getSoVeDaBan() != null ? sk.getSoVeDaBan() : 0) + missing);
+                suKienRepository.save(sk);
+            }
+        }
     }
 
     @Transactional

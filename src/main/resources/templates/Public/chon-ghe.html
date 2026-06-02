@@ -28,6 +28,12 @@
             .summary-title { font-size: 20px; color: #1e3a8a; margin: 0 0 20px; font-family: "Be Vietnam Pro", "Inter", sans-serif; font-weight: bold; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;}
             .selected-seats-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; min-height: 50px; }
             .selected-seat-tag { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; }
+            .standing-zone-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+            .standing-zone-card { border: 1px solid #dbeafe; border-radius: 10px; padding: 18px; background: #fff; box-shadow: 0 12px 28px rgba(15,23,42,.06); }
+            .standing-zone-card h3 { margin: 0 0 8px; color: #1e3a8a; font-size: 18px; }
+            .standing-zone-meta { color: #64748b; font-size: 13px; margin-bottom: 10px; }
+            .standing-zone-price { color: #ef4444; font-weight: 800; margin-bottom: 12px; }
+            .standing-zone-card input { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
             
             .total-box { margin-top: auto; padding-top: 20px; border-top: 1px solid #e2e8f0; }
             .total-price { font-size: 24px; color: #ef4444; font-weight: bold; text-align: right; margin-bottom: 20px; transition: transform .24s ease, color .24s ease; }
@@ -84,7 +90,7 @@
                 <h3 class="summary-title">Thông tin đặt vé</h3>
                 
                 <div style="margin-bottom: 15px;">
-                    <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Ghế đã chọn:</div>
+                    <div style="font-size: 14px; color: #64748b; margin-bottom: 5px;" id="selectionLabel">Ghế đã chọn:</div>
                     <div class="selected-seats-list" id="selectedSeatsList">
                         <span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn ghế nào</span>
                     </div>
@@ -93,7 +99,7 @@
                 <div class="total-box">
                     <div style="font-size: 14px; color: #64748b; text-align: right;">Tổng tiền</div>
                     <div class="total-price" id="totalPrice">0 ₫</div>
-                    <button class="btn-continue" id="btnContinue" disabled onclick="lockSeatsAndCheckout()">TIẾP TỤC THANH TOÁN</button>
+                    <button class="btn-continue" id="btnContinue" disabled onclick="submitBooking()">TIẾP TỤC THANH TOÁN</button>
                 </div>
             </div>
         </div>
@@ -108,6 +114,7 @@
             (seatMap.areas || []).forEach(area => areaMap[area.maKhuVuc] = area);
             
             let selectedSeats = [];
+            let selectedZone = null;
 
             function formatMoney(value) {
                 return new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' ₫';
@@ -121,6 +128,11 @@
             }
             
             function renderSeats() {
+                if ((seatMap.loaiSoDo || 'NGOI_THEO_GHE') === 'DUNG_THEO_KHU') {
+                    renderStandingZones();
+                    return;
+                }
+
                 const container = document.getElementById('seatMapContainer');
                 container.innerHTML = '';
 
@@ -180,6 +192,43 @@
                     requestAnimationFrame(() => areaEl.classList.add('is-visible'));
                 });
             }
+
+            function renderStandingZones() {
+                document.getElementById('selectionLabel').textContent = 'Khu đứng đã chọn:';
+                const container = document.getElementById('seatMapContainer');
+                const areas = Array.isArray(seatMap.areas) ? seatMap.areas : [];
+                if (areas.length === 0) {
+                    container.innerHTML = '<p style="color:#94a3b8;text-align:center;margin:24px 0;">Sự kiện này chưa có khu vực đứng.</p>';
+                    return;
+                }
+
+                container.innerHTML = '<div class="standing-zone-grid"></div>';
+                const grid = container.querySelector('.standing-zone-grid');
+                areas.forEach(area => {
+                    const remaining = Math.max(0, Number(area.soGheToiDa || 0) - Number(area.soGheDaBan || 0));
+                    const maxPerCustomer = Number(area.soVeToiDaPerKH || 4);
+                    const card = document.createElement('section');
+                    card.className = 'standing-zone-card';
+                    card.innerHTML = `
+                        <h3>${area.tenKhuVuc || 'Khu đứng'}</h3>
+                        <div class="standing-zone-meta">Còn ${remaining} vé / tối đa ${maxPerCustomer} vé mỗi khách</div>
+                        <div class="standing-zone-price">${formatMoney(area.giaVe)}</div>
+                        <input type="number" min="0" max="${Math.min(remaining, maxPerCustomer)}" value="0" aria-label="Số lượng vé ${area.tenKhuVuc || ''}">
+                    `;
+                    const input = card.querySelector('input');
+                    input.disabled = remaining <= 0 || area.trangThai !== 'Đang bán';
+                    input.addEventListener('input', () => {
+                        const quantity = Math.max(0, Math.min(Number(input.value || 0), Math.min(remaining, maxPerCustomer)));
+                        document.querySelectorAll('.standing-zone-card input').forEach(other => {
+                            if (other !== input) other.value = 0;
+                        });
+                        input.value = quantity;
+                        selectedZone = quantity > 0 ? { area, quantity, price: Number(area.giaVe || 0) } : null;
+                        updateSummary();
+                    });
+                    grid.appendChild(card);
+                });
+            }
             
             function toggleSeat(seatObj, el, price) {
                 const idx = selectedSeats.findIndex(s => s.id === seatObj.maGhe);
@@ -218,6 +267,19 @@
                 const listEl = document.getElementById('selectedSeatsList');
                 const totalEl = document.getElementById('totalPrice');
                 const btn = document.getElementById('btnContinue');
+
+                if ((seatMap.loaiSoDo || 'NGOI_THEO_GHE') === 'DUNG_THEO_KHU') {
+                    if (!selectedZone) {
+                        listEl.innerHTML = '<span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn khu đứng</span>';
+                        totalEl.textContent = '0 ₫';
+                        btn.disabled = true;
+                        return;
+                    }
+                    listEl.innerHTML = `<div class="selected-seat-tag">${selectedZone.area.tenKhuVuc || 'Khu đứng'} x ${selectedZone.quantity}</div>`;
+                    totalEl.textContent = formatMoney(selectedZone.price * selectedZone.quantity);
+                    btn.disabled = false;
+                    return;
+                }
                 
                 if (selectedSeats.length === 0) {
                     listEl.innerHTML = '<span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn ghế nào</span>';
@@ -238,6 +300,50 @@
                 
                 totalEl.textContent = formatMoney(total);
                 btn.disabled = false;
+            }
+
+            function submitBooking() {
+                if ((seatMap.loaiSoDo || 'NGOI_THEO_GHE') === 'DUNG_THEO_KHU') {
+                    lockZoneTicketsAndCheckout();
+                } else {
+                    lockSeatsAndCheckout();
+                }
+            }
+
+            function lockZoneTicketsAndCheckout() {
+                if (!selectedZone) return;
+
+                const btn = document.getElementById('btnContinue');
+                btn.disabled = true;
+                btn.textContent = 'ĐANG GIỮ VÉ...';
+
+                const payload = {
+                    maSK: maSK,
+                    maKhuVuc: selectedZone.area.maKhuVuc,
+                    soLuong: selectedZone.quantity,
+                    queueToken: queueToken
+                };
+
+                fetch('/api/booking/lock-zone-tickets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success === false || d.error) {
+                        alert(d.message || d.error || 'Không thể giữ vé khu đứng.');
+                        if (d.redirect) window.location.href = d.redirect;
+                        else location.reload();
+                    } else {
+                        window.location.href = d.redirect;
+                    }
+                })
+                .catch(() => {
+                    alert("Lỗi kết nối tới server hoặc thao tác quá nhanh.");
+                    btn.disabled = false;
+                    btn.textContent = 'TIẾP TỤC THANH TOÁN';
+                });
             }
             
             function lockSeatsAndCheckout() {

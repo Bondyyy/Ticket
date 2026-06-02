@@ -66,6 +66,9 @@ public class SuKien {
     @Column(name = "MaNV", length = 50)
     private String maNV;
 
+    @Column(name = "LoaiSoDo", length = 50)
+    private String loaiSoDo;
+
     // Getters and Setters
     public String getMaSK() { return maSK; }
     public void setMaSK(String maSK) { this.maSK = maSK; }
@@ -123,4 +126,12 @@ public class SuKien {
 
     public String getMaNV() { return maNV; }
     public void setMaNV(String maNV) { this.maNV = maNV; }
+
+    public String getLoaiSoDo() {
+        return loaiSoDo == null || loaiSoDo.isBlank() ? "NGOI_THEO_GHE" : loaiSoDo;
+    }
+
+    public void setLoaiSoDo(String loaiSoDo) {
+        this.loaiSoDo = loaiSoDo;
+    }
 }

@@ -27,6 +27,10 @@ public interface VeRepository extends JpaRepository<Ve, String> {
 
     boolean existsByMaDonHangAndMaGhe(String maDonHang, String maGhe);
 
+    long countByMaDonHangAndMaSKAndMaGheIsNull(String maDonHang, String maSK);
+
+    long countByMaDonHangAndMaSKAndMaKhuVucAndMaGheIsNull(String maDonHang, String maSK, String maKhuVuc);
+
     List<Ve> findByMaDonHang(String maDonHang);
 
     @Query("SELECT v FROM Ve v WHERE v.maSK = :maSK AND v.maDonHang = :maDonHang")

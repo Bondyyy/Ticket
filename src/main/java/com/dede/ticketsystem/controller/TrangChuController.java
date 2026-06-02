@@ -4,6 +4,7 @@ import com.dede.ticketsystem.model.SuKien;
 import com.dede.ticketsystem.model.KhuVuc;
 import com.dede.ticketsystem.model.Ghe;
 import com.dede.ticketsystem.model.DonHang;
+import com.dede.ticketsystem.model.DonHangChiTiet;
 import com.dede.ticketsystem.model.SeatMapDTO;
 import com.dede.ticketsystem.service.SuKienService;
 import com.dede.ticketsystem.service.SessionService;
@@ -11,6 +12,7 @@ import com.dede.ticketsystem.service.BookingService;
 import com.dede.ticketsystem.repository.KhuVucRepository;
 import com.dede.ticketsystem.repository.GheRepository;
 import com.dede.ticketsystem.repository.DonHangRepository;
+import com.dede.ticketsystem.repository.DonHangChiTietRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,6 +24,8 @@ import org.springframework.web.util.UriUtils;
 import java.sql.Timestamp;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 public class TrangChuController {
@@ -30,6 +34,7 @@ public class TrangChuController {
     private final KhuVucRepository khuVucRepository;
     private final GheRepository gheRepository;
     private final DonHangRepository donHangRepository;
+    private final DonHangChiTietRepository donHangChiTietRepository;
     private final BookingService bookingService;
 
     @Autowired
@@ -39,16 +44,23 @@ public class TrangChuController {
                               KhuVucRepository khuVucRepository, 
                               GheRepository gheRepository,
                               DonHangRepository donHangRepository,
+                              DonHangChiTietRepository donHangChiTietRepository,
                               BookingService bookingService) {
         this.suKienService = suKienService;
         this.khuVucRepository = khuVucRepository;
         this.gheRepository = gheRepository;
         this.donHangRepository = donHangRepository;
+        this.donHangChiTietRepository = donHangChiTietRepository;
         this.bookingService = bookingService;
     }
 
     @GetMapping("/")
     public String trangChu(Model model) {
+        List<SuKien> featuredEvents = suKienService.layTatCa().stream()
+                .filter(sk -> !"Đã hủy".equals(sk.getTrangThaiSK()))
+                .limit(6)
+                .toList();
+        model.addAttribute("featuredEvents", featuredEvents);
         return "Public/index";
     }
 
@@ -231,17 +243,24 @@ public class TrangChuController {
             return "redirect:/";
         }
 
-        // Lấy danh sách ghế đang giữ của phiên đơn hàng này
+        // Lấy danh sách ghế đang giữ của phiên đơn hàng này hoặc chi tiết khu đứng.
         List<Ghe> gheList = gheRepository.findByMaPhienKhoa(orderId);
-        if (gheList.isEmpty()) {
+        List<DonHangChiTiet> chiTietList = donHangChiTietRepository.findByMaDonHang(orderId);
+        if (gheList.isEmpty() && chiTietList.isEmpty()) {
             return "redirect:/";
         }
         
-        String maSK = gheList.get(0).getMaSK();
+        String maSK = !gheList.isEmpty() ? gheList.get(0).getMaSK() : chiTietList.get(0).getMaSK();
         SuKien sk = suKienService.timTheoMa(maSK).orElse(null);
+        Map<String, KhuVuc> khuVucMap = new HashMap<>();
+        for (DonHangChiTiet ct : chiTietList) {
+            khuVucRepository.findById(ct.getMaKhuVuc()).ifPresent(kv -> khuVucMap.put(ct.getMaKhuVuc(), kv));
+        }
         
         model.addAttribute("suKien", sk);
         model.addAttribute("gheList", gheList);
+        model.addAttribute("chiTietList", chiTietList);
+        model.addAttribute("khuVucMap", khuVucMap);
         model.addAttribute("tongTien", dh.getThanhTien());
         model.addAttribute("orderId", orderId);
         model.addAttribute("remainingSeconds", remainingSeconds);

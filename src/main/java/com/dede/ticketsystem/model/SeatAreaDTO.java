@@ -11,6 +11,9 @@ public class SeatAreaDTO {
     private String mauSacHienThi;
     private BigDecimal giaVe;
     private Integer soVeToiDaPerKH;
+    private Integer soGheToiDa;
+    private Integer soGheDaBan;
+    private String trangThai;
     private List<SeatRowDTO> rows = new ArrayList<>();
 
     public SeatAreaDTO() {
@@ -24,6 +27,15 @@ public class SeatAreaDTO {
         this.giaVe = giaVe;
         this.soVeToiDaPerKH = soVeToiDaPerKH;
         this.rows = rows;
+    }
+
+    public SeatAreaDTO(String maKhuVuc, String tenKhuVuc, String mauSacHienThi, BigDecimal giaVe,
+                       Integer soVeToiDaPerKH, Integer soGheToiDa, Integer soGheDaBan,
+                       String trangThai, List<SeatRowDTO> rows) {
+        this(maKhuVuc, tenKhuVuc, mauSacHienThi, giaVe, soVeToiDaPerKH, rows);
+        this.soGheToiDa = soGheToiDa;
+        this.soGheDaBan = soGheDaBan;
+        this.trangThai = trangThai;
     }
 
     public String getMaKhuVuc() {
@@ -64,6 +76,30 @@ public class SeatAreaDTO {
 
     public void setSoVeToiDaPerKH(Integer soVeToiDaPerKH) {
         this.soVeToiDaPerKH = soVeToiDaPerKH;
+    }
+
+    public Integer getSoGheToiDa() {
+        return soGheToiDa;
+    }
+
+    public void setSoGheToiDa(Integer soGheToiDa) {
+        this.soGheToiDa = soGheToiDa;
+    }
+
+    public Integer getSoGheDaBan() {
+        return soGheDaBan;
+    }
+
+    public void setSoGheDaBan(Integer soGheDaBan) {
+        this.soGheDaBan = soGheDaBan;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
     }
 
     public List<SeatRowDTO> getRows() {

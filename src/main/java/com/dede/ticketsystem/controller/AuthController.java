@@ -4,6 +4,7 @@ import com.dede.ticketsystem.model.NguoiDung;
 import com.dede.ticketsystem.model.PendingRegistrationDTO;
 import com.dede.ticketsystem.repository.KhachHangRepository;
 import com.dede.ticketsystem.service.AuthService;
+import com.dede.ticketsystem.service.ActiveSessionRegistry;
 import com.dede.ticketsystem.service.OtpMailService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class AuthController {
     @Autowired
     private OtpMailService otpMailService;
 
+    @Autowired
+    private ActiveSessionRegistry activeSessionRegistry;
+
     @Value("${app.mail.otp.expire-minutes:5}")
     private long otpExpireMinutes;
 
@@ -41,6 +45,7 @@ public class AuthController {
     public String showLogin(
             @RequestParam(required = false) String redirect,
             @RequestParam(required = false) String redirectUrl,
+            @RequestParam(required = false) String expired,
             HttpSession session,
             Model model) {
         if (session.getAttribute("nguoiDung") != null) {
@@ -48,6 +53,9 @@ public class AuthController {
         }
         String target = (redirect != null && !redirect.isBlank()) ? redirect : redirectUrl;
         model.addAttribute("redirectUrl", target);
+        if ("other-device".equals(expired)) {
+            model.addAttribute("error", "Tài khoản đã đăng nhập ở thiết bị khác. Phiên hiện tại đã hết hạn.");
+        }
         model.addAttribute("showNavbar", false);
         return "auth/login";
     }
@@ -73,6 +81,10 @@ public class AuthController {
                     .map(ct -> ct.getMaVaiTro())
                     .collect(Collectors.toSet());
             session.setAttribute("roles", roles);
+
+            if (roles.contains("ADMIN")) {
+                activeSessionRegistry.registerSingleSession(nguoiDung.getMaND(), session);
+            }
 
             // Nếu user là CUSTOMER thì lấy maKH
             if (roles.contains("CUSTOMER")) {

@@ -3,6 +3,7 @@ package com.dede.ticketsystem.interceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import com.dede.ticketsystem.service.ActiveSessionRegistry;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -10,6 +11,12 @@ import java.util.Set;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
+
+    private final ActiveSessionRegistry activeSessionRegistry;
+
+    public AuthInterceptor(ActiveSessionRegistry activeSessionRegistry) {
+        this.activeSessionRegistry = activeSessionRegistry;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -36,6 +43,25 @@ public class AuthInterceptor implements HandlerInterceptor {
         // Quyết định xem request có là AJAX hoặc API
         boolean isApiOrAjax = relativeUri.startsWith("/api/") || 
                               "XMLHttpRequest".equals(request.getHeader("X-Requested-With"));
+
+        if (nguoiDung != null && roles != null && roles.contains("ADMIN")) {
+            String maND = (String) session.getAttribute("maND");
+            if (!activeSessionRegistry.hasActiveSession(maND)) {
+                activeSessionRegistry.registerSingleSession(maND, session);
+            } else if (!activeSessionRegistry.isActiveSession(maND, session.getId())) {
+                try {
+                    session.invalidate();
+                } catch (IllegalStateException ignored) {
+                    // Session may already be invalidated.
+                }
+                if (isApiOrAjax) {
+                    sendJsonError(response, HttpServletResponse.SC_UNAUTHORIZED, "Tài khoản đã đăng nhập ở thiết bị khác. Phiên hiện tại đã hết hạn.", "/dang-nhap?expired=other-device");
+                    return false;
+                }
+                response.sendRedirect(contextPath + "/dang-nhap?expired=other-device");
+                return false;
+            }
+        }
 
         // 1. Kiểm tra các route của Customer
         if (isAuthenticatedRoute(relativeUri)) {

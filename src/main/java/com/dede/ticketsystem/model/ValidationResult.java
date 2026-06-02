@@ -12,6 +12,7 @@ public class ValidationResult {
     private long durationMs;
     private Timestamp thoiGianQuet;
     private String maSK;
+    private String nguonDuLieu;
     private String message;
 
     public ValidationResult() {}
@@ -104,6 +105,14 @@ public class ValidationResult {
 
     public void setMaSK(String maSK) {
         this.maSK = maSK;
+    }
+
+    public String getNguonDuLieu() {
+        return nguonDuLieu;
+    }
+
+    public void setNguonDuLieu(String nguonDuLieu) {
+        this.nguonDuLieu = nguonDuLieu;
     }
 
     public String getMessage() {

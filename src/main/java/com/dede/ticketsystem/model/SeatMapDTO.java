@@ -7,6 +7,7 @@ public class SeatMapDTO {
 
     private String maSK;
     private String tenSK;
+    private String loaiSoDo;
     private List<SeatAreaDTO> areas = new ArrayList<>();
 
     public SeatMapDTO() {
@@ -16,6 +17,11 @@ public class SeatMapDTO {
         this.maSK = maSK;
         this.tenSK = tenSK;
         this.areas = areas;
+    }
+
+    public SeatMapDTO(String maSK, String tenSK, String loaiSoDo, List<SeatAreaDTO> areas) {
+        this(maSK, tenSK, areas);
+        this.loaiSoDo = loaiSoDo;
     }
 
     public String getMaSK() {
@@ -32,6 +38,14 @@ public class SeatMapDTO {
 
     public void setTenSK(String tenSK) {
         this.tenSK = tenSK;
+    }
+
+    public String getLoaiSoDo() {
+        return loaiSoDo;
+    }
+
+    public void setLoaiSoDo(String loaiSoDo) {
+        this.loaiSoDo = loaiSoDo;
     }
 
     public List<SeatAreaDTO> getAreas() {

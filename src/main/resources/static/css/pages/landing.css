@@ -6,6 +6,246 @@
     --hero-visual-y: 0px;
 }
 
+.buyer-landing .landing-hero {
+    grid-template-columns: minmax(0, 0.95fr) minmax(380px, 1.05fr);
+}
+
+.ticket-hero-visual {
+    min-height: 520px;
+    border-radius: 32px;
+    background:
+        radial-gradient(circle at 20% 15%, rgba(249, 115, 22, .28), transparent 28%),
+        radial-gradient(circle at 75% 20%, rgba(37, 99, 235, .26), transparent 28%),
+        linear-gradient(135deg, #101828, #312e81 54%, #0f766e);
+    overflow: hidden;
+    box-shadow: 0 34px 80px rgba(15, 23, 42, .24);
+}
+
+.stage-lights {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(105deg, transparent 8%, rgba(255,255,255,.18) 22%, transparent 34%),
+        linear-gradient(72deg, transparent 54%, rgba(255,255,255,.14) 68%, transparent 80%);
+    opacity: .8;
+}
+
+.concert-poster,
+.phone-ticket,
+.digital-ticket {
+    position: absolute;
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(255,255,255,.36);
+    box-shadow: 0 22px 60px rgba(15,23,42,.26);
+}
+
+.concert-poster {
+    left: 34px;
+    top: 46px;
+    width: 260px;
+    min-height: 330px;
+    padding: 28px;
+    border-radius: 26px;
+    color: #fff;
+    background:
+        linear-gradient(180deg, rgba(15,23,42,.05), rgba(15,23,42,.82)),
+        linear-gradient(135deg, #f97316, #2563eb);
+}
+
+.concert-poster span,
+.concert-poster small,
+.digital-ticket span,
+.digital-ticket small,
+.phone-screen small,
+.ticket-label {
+    display: block;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.concert-poster strong {
+    display: block;
+    margin-top: 118px;
+    font-size: 34px;
+    line-height: 1.05;
+}
+
+.phone-ticket {
+    right: 48px;
+    top: 72px;
+    width: 230px;
+    min-height: 390px;
+    padding: 12px;
+    border-radius: 34px;
+    background: #111827;
+}
+
+.phone-notch {
+    width: 74px;
+    height: 8px;
+    border-radius: 999px;
+    margin: 4px auto 10px;
+    background: #334155;
+}
+
+.phone-screen {
+    min-height: 338px;
+    border-radius: 24px;
+    padding: 22px;
+    text-align: center;
+    background: linear-gradient(180deg, #ffffff, #eef4ff);
+}
+
+.phone-screen .qr-mock {
+    margin: 26px auto 18px;
+}
+
+.phone-screen strong {
+    display: block;
+    color: #1e3a8a;
+    font-size: 22px;
+}
+
+.digital-ticket {
+    left: 170px;
+    bottom: 46px;
+    width: 285px;
+    border-radius: 24px;
+    padding: 20px;
+}
+
+.digital-ticket strong {
+    display: block;
+    color: #ef4444;
+    font-size: 30px;
+}
+
+.quick-path-grid,
+.category-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.quick-path-grid {
+    grid-template-columns: repeat(2, 1fr);
+    margin: 10px 0 76px;
+}
+
+.quick-path-card {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    padding: 26px;
+    border-radius: 24px;
+    color: var(--text);
+    text-decoration: none;
+    background: rgba(255,255,255,.9);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.quick-path-card i {
+    color: var(--primary);
+    font-size: 28px;
+}
+
+.quick-path-card strong {
+    font-size: 22px;
+}
+
+.quick-path-card span {
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.category-grid {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.category-grid a {
+    padding: 18px;
+    text-align: center;
+    border-radius: 18px;
+    text-decoration: none;
+    color: #1e3a8a;
+    font-weight: 900;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+.category-grid a:hover {
+    transform: translateY(-4px);
+    background: #fff;
+    box-shadow: var(--shadow);
+}
+
+.buyer-feature-grid {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.four-step-grid {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.organizer-band {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 26px;
+    margin: 86px 0;
+    padding: 34px;
+    border-radius: 30px;
+    color: #fff;
+    background: linear-gradient(135deg, #111827, #1d4ed8 58%, #0f766e);
+    box-shadow: 0 28px 70px rgba(15,23,42,.22);
+}
+
+.organizer-band h2 {
+    margin: 14px 0 10px;
+    max-width: 760px;
+    font-size: clamp(28px, 3vw, 42px);
+    color: #fff;
+}
+
+.organizer-band p {
+    max-width: 780px;
+    color: #dbeafe;
+    line-height: 1.75;
+}
+
+.landing-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 30px 0 12px;
+    border-top: 1px solid var(--border);
+}
+
+.landing-footer strong,
+.landing-footer span {
+    display: block;
+}
+
+.landing-footer span {
+    color: var(--muted);
+}
+
+.landing-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.landing-footer a {
+    color: var(--primary-dark);
+    font-weight: 800;
+    text-decoration: none;
+}
+
 .landing-page::before {
     content: "";
     position: fixed;
@@ -1025,6 +1265,15 @@
     .timeline-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .buyer-feature-grid,
+    .category-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .four-step-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 820px) {
@@ -1099,8 +1348,43 @@
     .trust-grid,
     .feature-grid,
     .audience-section,
-    .timeline-grid {
+    .timeline-grid,
+    .quick-path-grid,
+    .category-grid,
+    .buyer-feature-grid,
+    .four-step-grid {
         grid-template-columns: 1fr;
+    }
+
+    .buyer-landing .landing-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .ticket-hero-visual {
+        min-height: 640px;
+    }
+
+    .concert-poster,
+    .phone-ticket,
+    .digital-ticket {
+        position: relative;
+        inset: auto;
+        width: auto;
+        margin: 16px;
+    }
+
+    .concert-poster strong {
+        margin-top: 72px;
+    }
+
+    .organizer-band,
+    .landing-footer {
+        display: block;
+    }
+
+    .organizer-band .btn-hero-primary,
+    .landing-footer nav {
+        margin-top: 18px;
     }
 
     .events-page .event-grid {

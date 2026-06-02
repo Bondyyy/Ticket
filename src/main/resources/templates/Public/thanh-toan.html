@@ -57,7 +57,7 @@
         <div class="checkout-card">
             <div class="checkout-header">
                 <h2>Hoàn Tất Thanh Toán</h2>
-                <div class="timer-box">Thời gian giữ ghế còn: <span id="countdown">10:00</span></div>
+                <div class="timer-box">Thời gian giữ vé còn: <span id="countdown">10:00</span></div>
             </div>
             
             <div class="checkout-body">
@@ -73,12 +73,20 @@
                     <span class="info-value" th:text="${suKien.tenSK}">Tên sự kiện</span>
                 </div>
                 
-                <div class="info-row">
+                <div class="info-row" th:if="${gheList != null and !gheList.isEmpty()}">
                     <span class="info-label">Ghế đã giữ:</span>
                     <span class="info-value">
                         <span th:each="ghe, iterStat : ${gheList}">
                             <span th:text="${ghe.tenGhe}"></span><span th:if="${!iterStat.last}">, </span>
                         </span>
+                    </span>
+                </div>
+
+                <div class="info-row" th:if="${chiTietList != null and !chiTietList.isEmpty()}" th:each="ct : ${chiTietList}">
+                    <span class="info-label">Khu đứng:</span>
+                    <span class="info-value">
+                        <span th:text="${khuVucMap.get(ct.maKhuVuc) != null ? khuVucMap.get(ct.maKhuVuc).tenKhuVuc : ct.maKhuVuc}">GA Standing</span>
+                        <span th:text="' x ' + ${ct.soLuong}"> x 2</span>
                     </span>
                 </div>
                 
@@ -179,7 +187,7 @@
                 clearInterval(countdownTimer);
                 timerEl.textContent = "00:00";
                 syncTimerState();
-                alert("Đã hết thời gian giữ ghế. Đơn hàng đã bị hủy và ghế đã được trả lại.");
+                alert("Đã hết thời gian giữ vé. Đơn hàng đã bị hủy.");
                 cancelOrderOnTimeout();
             } else {
                 timerEl.textContent = formatTime(timeLeft);

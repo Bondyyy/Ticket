@@ -3,9 +3,13 @@ package com.dede.ticketsystem.controller;
 import com.dede.ticketsystem.model.SuKien;
 import com.dede.ticketsystem.model.SuKienDTO;
 import com.dede.ticketsystem.model.ThietLapSanKhauDTO;
+import com.dede.ticketsystem.model.DiaDiem;
 import com.dede.ticketsystem.service.SuKienService;
+import com.dede.ticketsystem.service.IdGeneratorService;
 import com.dede.ticketsystem.repository.KhuVucRepository;
 import com.dede.ticketsystem.repository.GheRepository;
+import com.dede.ticketsystem.repository.DiaDiemRepository;
+import com.dede.ticketsystem.util.DateTimeUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,12 +31,16 @@ public class SuKienController {
     private final JdbcTemplate jdbcTemplate;
     private final KhuVucRepository khuVucRepository;
     private final GheRepository gheRepository;
+    private final DiaDiemRepository diaDiemRepository;
+    private final IdGeneratorService idGeneratorService;
 
-    public SuKienController(SuKienService suKienService, JdbcTemplate jdbcTemplate, KhuVucRepository khuVucRepository, GheRepository gheRepository) {
+    public SuKienController(SuKienService suKienService, JdbcTemplate jdbcTemplate, KhuVucRepository khuVucRepository, GheRepository gheRepository, DiaDiemRepository diaDiemRepository, IdGeneratorService idGeneratorService) {
         this.suKienService = suKienService;
         this.jdbcTemplate = jdbcTemplate;
         this.khuVucRepository = khuVucRepository;
         this.gheRepository = gheRepository;
+        this.diaDiemRepository = diaDiemRepository;
+        this.idGeneratorService = idGeneratorService;
     }
 
     @GetMapping
@@ -52,7 +60,7 @@ public class SuKienController {
         List<Map<String, Object>> dsNhanVien = new java.util.ArrayList<>();
         try {
             dsLoaiSK = jdbcTemplate.queryForList("SELECT MaLoaiSK as MALOAISK, TenLoaiSK as TENLOAISK FROM LOAISUKIEN");
-            dsDiaDiem = jdbcTemplate.queryForList("SELECT MaDiaDiem as MADIADIEM, TenDiaDiem as TENDIADIEM FROM DIADIEM");
+            dsDiaDiem = jdbcTemplate.queryForList("SELECT MaDiaDiem as MADIADIEM, TenDiaDiem as TENDIADIEM FROM DIADIEM WHERE TrangThai IS NULL OR TrangThai <> 'Ngừng hoạt động'");
             dsNhanVien = jdbcTemplate.queryForList("SELECT nv.MaNV as MANV, nd.TenTaiKhoan as TENNV FROM NHANVIEN nv JOIN NGUOIDUNG nd ON nv.MaND = nd.MaND");
         } catch (Exception e) {
             e.printStackTrace();
@@ -81,10 +89,10 @@ public class SuKienController {
                     data.put("hinhAnh", sk.getHinhAnh());
                     data.put("hinhAnhThumb", sk.getHinhAnhThumb());
                     data.put("tags", sk.getTags());
-                    data.put("thoiGianBatDau", sk.getThoiGianBatDau() != null ? sk.getThoiGianBatDau().toString() : null);
-                    data.put("thoiGianKetThuc", sk.getThoiGianKetThuc() != null ? sk.getThoiGianKetThuc().toString() : null);
-                    data.put("thoiGianMoBan", sk.getThoiGianMoBan() != null ? sk.getThoiGianMoBan().toString() : null);
-                    data.put("thoiGianDongBan", sk.getThoiGianDongBan() != null ? sk.getThoiGianDongBan().toString() : null);
+                    data.put("thoiGianBatDau", DateTimeUtils.formatForDateTimeLocal(sk.getThoiGianBatDau()));
+                    data.put("thoiGianKetThuc", DateTimeUtils.formatForDateTimeLocal(sk.getThoiGianKetThuc()));
+                    data.put("thoiGianMoBan", DateTimeUtils.formatForDateTimeLocal(sk.getThoiGianMoBan()));
+                    data.put("thoiGianDongBan", DateTimeUtils.formatForDateTimeLocal(sk.getThoiGianDongBan()));
                     data.put("tongSoVe", sk.getTongSoVe());
                     data.put("soVeDaBan", sk.getSoVeDaBan());
                     data.put("trangThaiSK", sk.getTrangThaiSK());
@@ -92,9 +100,48 @@ public class SuKienController {
                     data.put("tenLoaiSK", timTenLoaiSK(sk.getMaLoaiSK()));
                     data.put("maDiaDiem", sk.getMaDiaDiem());
                     data.put("maNV", sk.getMaNV());
+                    data.put("loaiSoDo", sk.getLoaiSoDo());
+                    data.put("banToChuc", suKienService.getBanToChucDetail(sk.getMaSK()));
                     return ResponseEntity.ok(data);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/api/dia-diem")
+    @ResponseBody
+    public ResponseEntity<?> danhSachDiaDiem() {
+        return ResponseEntity.ok(diaDiemRepository.findAllByOrderByTenDiaDiemAsc());
+    }
+
+    @PostMapping("/api/dia-diem")
+    @ResponseBody
+    public ResponseEntity<?> taoDiaDiem(@RequestBody DiaDiem payload) {
+        try {
+            if (payload.getTenDiaDiem() == null || payload.getTenDiaDiem().trim().isEmpty()) {
+                throw new RuntimeException("Tên địa điểm không được để trống.");
+            }
+            if (payload.getDiaChi() == null || payload.getDiaChi().trim().isEmpty()) {
+                throw new RuntimeException("Địa chỉ không được để trống.");
+            }
+            if (payload.getSucChuaToiDa() == null || payload.getSucChuaToiDa() <= 0) {
+                throw new RuntimeException("Sức chứa tối đa phải lớn hơn 0.");
+            }
+
+            DiaDiem diaDiem = new DiaDiem();
+            diaDiem.setMaDiaDiem(idGeneratorService.nextDiaDiemId());
+            diaDiem.setTenDiaDiem(payload.getTenDiaDiem().trim());
+            diaDiem.setDiaChi(payload.getDiaChi().trim());
+            diaDiem.setThanhPho(payload.getThanhPho() != null ? payload.getThanhPho().trim() : null);
+            diaDiem.setSucChuaToiDa(payload.getSucChuaToiDa());
+            diaDiem.setMoTa(payload.getMoTa());
+            String trangThai = payload.getTrangThai() == null || payload.getTrangThai().isBlank()
+                    ? "Đang hoạt động"
+                    : payload.getTrangThai().trim();
+            diaDiem.setTrangThai(trangThai);
+            return ResponseEntity.ok(diaDiemRepository.save(diaDiem));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
     }
 
     @PostMapping("/tao-moi")

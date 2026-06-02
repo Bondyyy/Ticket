@@ -145,6 +145,7 @@ public class SoatVeController {
             } catch (Exception e) {
                 ValidationResult failed = new ValidationResult(false, "Vé không tìm thấy", null, null, null, null, 0);
                 failed.setMessage("Không thể đồng bộ lượt quét này: " + e.getMessage());
+                failed.setNguonDuLieu("Offline");
                 results.add(failed);
             }
         }
