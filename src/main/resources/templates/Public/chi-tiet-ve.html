@@ -89,6 +89,23 @@
                 font-weight: 600;
                 color: white;
             }
+            .price-value,
+            .qr-safe-code {
+                font-size: 18px;
+                font-weight: 800;
+                line-height: 1.25;
+            }
+            .price-with-safe-code {
+                display: grid;
+                gap: 14px;
+            }
+            .qr-safe-code {
+                overflow-wrap: break-word;
+                word-break: normal;
+                color: #ffffff;
+                font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+                letter-spacing: 0.4px;
+            }
             .ticket-cut-line {
                 width: 100%;
                 height: 1px;
@@ -149,9 +166,6 @@
                     <div class="qr-large-wrapper">
                         <img th:src="'data:image/png;base64,' + ${ticket.qrBase64}" alt="Large Entrance QR Code" width="280" height="280">
                     </div>
-                    
-                    <div style="color: #a5b4fc; font-size: 12px; letter-spacing: 1px;" th:text="'MÃ QR PHỤC VỤ SOÁT VÉ'">MÃ QR PHỤC VỤ SOÁT VÉ</div>
-                    <div class="fw-bold mt-1 text-white" th:text="${ticket.maVe}" style="font-size: 18px;">VE-12345678</div>
 
                     <!-- Lưới thông tin -->
                     <div class="info-grid">
@@ -167,13 +181,15 @@
                                 <span th:if="${ticket.trangThaiVe == 'Đã hủy'}" class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Đã hủy</span>
                             </div>
                         </div>
-                        <div>
+                        <div class="price-with-safe-code">
+                            <div>
                             <div class="grid-label">Giá vé mua</div>
-                            <div class="grid-value" th:text="${#numbers.formatDecimal(ticket.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.000.000 VNĐ</div>
-                        </div>
-                        <div>
-                            <div class="grid-label">Mã an toàn QR</div>
-                            <div class="grid-value" style="font-size: 11px; word-break: break-all;" th:text="${#strings.substring(ticket.qrPayload, 0, 20)} + '...'">Payload...</div>
+                            <div class="grid-value price-value" th:text="${#numbers.formatDecimal(ticket.giaVe, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">1.000.000 VNĐ</div>
+                            </div>
+                            <div>
+                            <div class="grid-label">Mã an toàn</div>
+                            <div class="grid-value qr-safe-code" th:text="${ticket.safeCode}">DDT-7KQ9-HM4P-2XTA-R8VN</div>
+                            </div>
                         </div>
                     </div>
 

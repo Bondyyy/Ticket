@@ -33,6 +33,7 @@ public class VeService {
     private final KhachHangRepository khachHangRepository;
     private final LichSuSoatVeRepository lichSuSoatVeRepository;
     private final IdGeneratorService idGeneratorService;
+    private final TicketCodeGeneratorService ticketCodeGeneratorService;
 
     public VeService(VeRepository veRepository,
                      DonHangRepository donHangRepository,
@@ -40,7 +41,8 @@ public class VeService {
                      SuKienRepository suKienRepository,
                      KhachHangRepository khachHangRepository,
                      LichSuSoatVeRepository lichSuSoatVeRepository,
-                     IdGeneratorService idGeneratorService) {
+                     IdGeneratorService idGeneratorService,
+                     TicketCodeGeneratorService ticketCodeGeneratorService) {
         this.veRepository = veRepository;
         this.donHangRepository = donHangRepository;
         this.gheRepository = gheRepository;
@@ -48,6 +50,7 @@ public class VeService {
         this.khachHangRepository = khachHangRepository;
         this.lichSuSoatVeRepository = lichSuSoatVeRepository;
         this.idGeneratorService = idGeneratorService;
+        this.ticketCodeGeneratorService = ticketCodeGeneratorService;
     }
 
     public List<Ve> layTatCa() {
@@ -88,12 +91,13 @@ public class VeService {
 
         // Auto-generate QR code if not provided
         if (dto.getMaQR() == null || dto.getMaQR().trim().isEmpty()) {
-            ve.setMaQR(buildQrCode(ve.getMaVe()));
+            ve.setMaQR(ticketCodeGeneratorService.generateUniqueTicketCode());
         } else {
-            if (veRepository.existsByMaQR(dto.getMaQR())) {
+            String safeCode = ticketCodeGeneratorService.normalizeAndValidateManualCode(dto.getMaQR());
+            if (veRepository.existsByMaQR(safeCode)) {
                 throw new RuntimeException("Mã QR đã tồn tại!");
             }
-            ve.setMaQR(dto.getMaQR());
+            ve.setMaQR(safeCode);
         }
 
         ve.setGiaVe(dto.getGiaVe());
@@ -127,11 +131,12 @@ public class VeService {
         if (dto.getMaSK() != null) ve.setMaSK(dto.getMaSK().isBlank() ? null : dto.getMaSK());
         
         // Update QR Code only if explicitly provided and different
-        if (dto.getMaQR() != null && !dto.getMaQR().isBlank() && !dto.getMaQR().equals(ve.getMaQR())) {
-            if (veRepository.existsByMaQR(dto.getMaQR())) {
+        if (dto.getMaQR() != null && !dto.getMaQR().isBlank()) {
+            String safeCode = ticketCodeGeneratorService.normalizeAndValidateManualCode(dto.getMaQR());
+            if (!safeCode.equals(ve.getMaQR()) && veRepository.existsByMaQR(safeCode)) {
                 throw new RuntimeException("Mã QR đã tồn tại trên một vé khác!");
             }
-            ve.setMaQR(dto.getMaQR());
+            ve.setMaQR(safeCode);
         }
 
         return veRepository.save(ve);
@@ -194,57 +199,48 @@ public class VeService {
     }
 
     private Optional<Ve> parsePayloadAndFindVe(String payloadOrCode, boolean withLock) {
-        if (payloadOrCode == null || payloadOrCode.trim().isEmpty()) {
+        String input = ticketCodeGeneratorService.normalizeCode(payloadOrCode);
+        if (input == null) {
             return Optional.empty();
         }
 
-        String input = payloadOrCode.trim();
-
-        if (input.startsWith("TICKET|")) {
-            String[] parts = input.split("\\|");
-            String parsedMaVe = null;
-            String parsedMaQR = null;
-            for (String part : parts) {
-                String[] keyValue = part.split("=", 2);
-                if (keyValue.length != 2) {
-                    continue;
-                }
-                String key = keyValue[0].trim();
-                String value = keyValue[1].trim();
-                if ("maVe".equalsIgnoreCase(key)) {
-                    parsedMaVe = value;
-                } else if ("maQR".equalsIgnoreCase(key)) {
-                    parsedMaQR = value;
-                }
+        String code;
+        if (input.startsWith("DDE_TICKET|")) {
+            code = parsePayloadField(input, "code");
+        } else if (input.startsWith("TICKET|")) {
+            code = parsePayloadField(input, "code");
+            if (code == null) {
+                code = parsePayloadField(input, "maQR");
             }
+        } else {
+            code = input;
+        }
 
-            // Full ticket payloads are authoritative: when maVe exists, lock by maVe only.
-            // This avoids accepting a forged payload with a fake maVe but a real maQR.
-            if (parsedMaVe != null && !parsedMaVe.trim().isEmpty()) {
-                return findByMaVe(parsedMaVe.trim(), withLock);
-            }
-
-            if (parsedMaQR != null && !parsedMaQR.trim().isEmpty()) {
-                return findByMaQR(parsedMaQR.trim(), withLock);
-            }
-
+        String safeCode = ticketCodeGeneratorService.normalizeCode(code);
+        if (!ticketCodeGeneratorService.isValidTicketCodeFormat(safeCode)) {
             return Optional.empty();
         }
 
-        Optional<Ve> veByQR = findByMaQR(input, withLock);
-        if (veByQR.isPresent()) {
-            return veByQR;
-        }
-
-        return findByMaVe(input, withLock);
-    }
-
-    private Optional<Ve> findByMaVe(String maVe, boolean withLock) {
-        return withLock ? veRepository.findByMaVeWithLock(maVe) : veRepository.findById(maVe);
+        return findByMaQR(safeCode, withLock);
     }
 
     private Optional<Ve> findByMaQR(String maQR, boolean withLock) {
         return withLock ? veRepository.findByMaQRWithLock(maQR) : veRepository.findByMaQR(maQR);
+    }
+
+    private String parsePayloadField(String payload, String expectedKey) {
+        String[] parts = payload.split("\\|");
+        for (String part : parts) {
+            String[] keyValue = part.split("=", 2);
+            if (keyValue.length != 2) {
+                continue;
+            }
+            String key = keyValue[0].trim();
+            if (expectedKey.equalsIgnoreCase(key)) {
+                return keyValue[1].trim();
+            }
+        }
+        return null;
     }
 
     private VeQuanLyDTO toQuanLyDTO(Ve ve) {
@@ -303,17 +299,6 @@ public class VeService {
         }
         String clean = value.trim();
         return clean.isEmpty() ? null : clean;
-    }
-
-    private String buildQrCode(String maVe) {
-        String base = "QR-" + maVe;
-        String candidate = base;
-        int suffix = 1;
-        while (veRepository.existsByMaQR(candidate)) {
-            suffix++;
-            candidate = base + "-" + suffix;
-        }
-        return candidate;
     }
 
     private Timestamp parseTimestamp(String timeStr) {

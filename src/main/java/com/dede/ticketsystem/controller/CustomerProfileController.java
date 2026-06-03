@@ -123,6 +123,7 @@ public class CustomerProfileController {
     private VeCuaToiDTO mapToVeCuaToiDTO(Ve ve, int qrWidth, int qrHeight) {
         VeCuaToiDTO dto = new VeCuaToiDTO();
         dto.setMaVe(ve.getMaVe());
+        dto.setSafeCode(ve.getMaQR());
         dto.setGiaVe(ve.getGiaVe());
         dto.setTrangThaiVe(ve.getTrangThaiVe());
 

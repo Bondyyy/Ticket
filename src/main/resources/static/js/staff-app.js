@@ -102,7 +102,7 @@
             const input = byId('manualCodeInput');
             const code = input?.value.trim();
             if (!code) {
-                showClientWarning('CHƯA CÓ MÃ', 'Vui lòng nhập mã QR hoặc mã vé.');
+                showClientWarning('CHƯA CÓ MÃ', 'Vui lòng nhập mã an toàn.');
                 return;
             }
             handleDecodedCode(code);
@@ -804,7 +804,7 @@
         if (status === 'Vé đã sử dụng') return 'Vé này đã được soát trước đó.';
         if (status === 'Sai sự kiện') return 'Vé tồn tại nhưng không thuộc sự kiện đang chọn.';
         if (status === 'Vé giả') return 'Vé không được phép sử dụng tại cổng.';
-        return 'Mã vé hoặc mã QR không tồn tại trên hệ thống.';
+        return 'Mã an toàn không tồn tại trên hệ thống.';
     }
 
     function statusClass(status) {
@@ -839,10 +839,19 @@
 
     function extractShortCode(value) {
         const text = String(value || '');
-        if (text.startsWith('TICKET|')) {
-            const part = text.split('|').find(item => item.startsWith('maVe='));
+        if (text.startsWith('DDE_TICKET|')) {
+            const part = text.split('|').find(item => item.toLowerCase().startsWith('code='));
             if (part) {
                 return part.slice(5);
+            }
+        }
+        if (text.startsWith('TICKET|')) {
+            const part = text.split('|').find(item => {
+                const key = item.split('=')[0]?.trim().toLowerCase();
+                return key === 'code' || key === 'maqr';
+            });
+            if (part) {
+                return part.split('=').slice(1).join('=');
             }
         }
         return text.length > 22 ? text.slice(0, 22) + '...' : text || 'N/A';

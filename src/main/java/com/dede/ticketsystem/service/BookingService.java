@@ -39,6 +39,7 @@ public class BookingService {
     private final GiaoDichThanhToanRepository giaoDichThanhToanRepository;
     private final DonHangChiTietRepository donHangChiTietRepository;
     private final IdGeneratorService idGeneratorService;
+    private final TicketCodeGeneratorService ticketCodeGeneratorService;
 
     @Autowired
     private EmailService emailService;
@@ -63,7 +64,8 @@ public class BookingService {
                           SuKienRepository suKienRepository,
                           GiaoDichThanhToanRepository giaoDichThanhToanRepository,
                           DonHangChiTietRepository donHangChiTietRepository,
-                          IdGeneratorService idGeneratorService) {
+                          IdGeneratorService idGeneratorService,
+                          TicketCodeGeneratorService ticketCodeGeneratorService) {
         this.gheRepository = gheRepository;
         this.donHangRepository = donHangRepository;
         this.veRepository = veRepository;
@@ -72,6 +74,7 @@ public class BookingService {
         this.giaoDichThanhToanRepository = giaoDichThanhToanRepository;
         this.donHangChiTietRepository = donHangChiTietRepository;
         this.idGeneratorService = idGeneratorService;
+        this.ticketCodeGeneratorService = ticketCodeGeneratorService;
     }
 
     @Transactional
@@ -396,11 +399,10 @@ public class BookingService {
                         .orElseThrow(() -> new RuntimeException("Khu vực của ghế không tồn tại!"));
 
                 String maVe = idGeneratorService.nextVeId();
-                String maQR = buildQrCode(maVe);
 
                 Ve ve = new Ve();
                 ve.setMaVe(maVe);
-                ve.setMaQR(maQR);
+                ve.setMaQR(ticketCodeGeneratorService.generateUniqueTicketCode());
                 ve.setGiaVe(kv.getGiaVe() != null ? kv.getGiaVe() : java.math.BigDecimal.ZERO);
                 ve.setTrangThaiVe("Chưa sử dụng");
                 ve.setThoiGianPhat(now);
@@ -460,7 +462,7 @@ public class BookingService {
                 String maVe = idGeneratorService.nextVeId();
                 Ve ve = new Ve();
                 ve.setMaVe(maVe);
-                ve.setMaQR(buildQrCode(maVe));
+                ve.setMaQR(ticketCodeGeneratorService.generateUniqueTicketCode());
                 ve.setGiaVe(chiTiet.getDonGia() != null ? chiTiet.getDonGia() : java.math.BigDecimal.ZERO);
                 ve.setTrangThaiVe("Chưa sử dụng");
                 ve.setThoiGianPhat(now);
@@ -578,14 +580,4 @@ public class BookingService {
         giaoDichThanhToanRepository.save(gd);
     }
 
-    private String buildQrCode(String maVe) {
-        String base = "QR-" + maVe;
-        String candidate = base;
-        int suffix = 1;
-        while (veRepository.existsByMaQR(candidate)) {
-            suffix++;
-            candidate = base + "-" + suffix;
-        }
-        return candidate;
-    }
 }

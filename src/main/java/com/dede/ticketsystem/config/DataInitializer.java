@@ -3,6 +3,7 @@ package com.dede.ticketsystem.config;
 import com.dede.ticketsystem.model.VaiTro;
 import com.dede.ticketsystem.repository.VaiTroRepository;
 import com.dede.ticketsystem.service.IdGeneratorService;
+import com.dede.ticketsystem.service.TicketCodeGeneratorService;
 import com.dede.ticketsystem.util.DateTimeUtils;
 import com.dede.ticketsystem.util.ImageUrlUtil;
 import com.dede.ticketsystem.util.OrderStatus;
@@ -26,7 +27,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
@@ -47,6 +47,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private IdGeneratorService idGeneratorService;
+
+    @Autowired
+    private TicketCodeGeneratorService ticketCodeGeneratorService;
 
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
@@ -85,6 +88,7 @@ public class DataInitializer implements CommandLineRunner {
         seedDemoUsers();
         seedDemoCatalogAndEvents(didFullReseed);
         seedDemoPurchaseHistory();
+        migrateUnsafeTicketCodes();
 
         System.out.println("KHỞI TẠO DỮ LIỆU DEMO HOÀN TẤT. Full reseed: " + didFullReseed);
     }
@@ -845,7 +849,7 @@ public class DataInitializer implements CommandLineRunner {
     private void createTicketForPaidOrder(int orderSequence, int ticketSequence, String maDonHang, String maSK, ZoneInventory zone,
                                           String maGhe, Timestamp orderTime, PurchaseSeedSummary summary) {
         String maVe = String.format("DEMO_VE_%04d_%02d", orderSequence, ticketSequence);
-        String maQR = "DEMO-QR-" + maVe + "-" + maSK + "-" + Math.abs(Objects.hash(maVe, maDonHang));
+        String maQR = ticketCodeGeneratorService.generateUniqueTicketCode();
         Timestamp issuedAt = new Timestamp(orderTime.getTime() + 30_000L + ticketSequence * 1000L);
 
         jdbcTemplate.update(
@@ -868,6 +872,31 @@ public class DataInitializer implements CommandLineRunner {
             );
         }
         summary.tickets++;
+    }
+
+    private void migrateUnsafeTicketCodes() {
+        if (!tableExists("VE")) {
+            return;
+        }
+
+        List<Map<String, Object>> tickets = jdbcTemplate.queryForList("SELECT MaVe, MaQR FROM VE");
+        int migrated = 0;
+        for (Map<String, Object> ticket : tickets) {
+            String maVe = String.valueOf(getRowValue(ticket, "MaVe", "MAVE"));
+            Object rawMaQR = getRowValue(ticket, "MaQR", "MAQR");
+            String maQR = rawMaQR == null ? null : String.valueOf(rawMaQR);
+            if (!ticketCodeGeneratorService.isUnsafeLegacyCode(maQR, maVe)) {
+                continue;
+            }
+
+            String safeCode = ticketCodeGeneratorService.generateUniqueTicketCode();
+            jdbcTemplate.update("UPDATE VE SET MaQR = ? WHERE MaVe = ?", safeCode, maVe);
+            migrated++;
+        }
+
+        if (migrated > 0) {
+            System.out.println("DataInitializer: đã chuyển " + migrated + " MaQR cũ sang mã an toàn QR mới.");
+        }
     }
 
     private void updateSoldCounters() {

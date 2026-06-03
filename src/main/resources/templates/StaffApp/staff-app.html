@@ -123,8 +123,8 @@
 
             <article class="panel manual-panel">
                 <span class="panel-kicker">Nhập thủ công</span>
-                <label class="field-label" for="manualCodeInput">Nhập mã QR hoặc mã vé</label>
-                <input id="manualCodeInput" class="app-control code-input" type="text" autocomplete="off" inputmode="text" placeholder="TICKET|maVe=... hoặc MaVe/MaQR">
+                <label class="field-label" for="manualCodeInput">Nhập mã an toàn thủ công</label>
+                <input id="manualCodeInput" class="app-control code-input" type="text" autocomplete="off" inputmode="text" placeholder="Quét QR hoặc nhập mã an toàn, ví dụ DDT-7KQ9-HM4P-2XTA-R8VN">
                 <div class="manual-actions">
                     <button id="manualSubmitBtn" type="button" class="primary-action">Soát vé</button>
                     <button id="pasteCodeBtn" type="button" class="secondary-action">Dán mã</button>
@@ -135,9 +135,9 @@
             <article id="resultCard" class="result-card result-idle" aria-live="polite">
                 <div id="resultSymbol" class="result-symbol">⌁</div>
                 <h2 id="resultTitle">SẴN SÀNG SOÁT VÉ</h2>
-                <p id="resultMessage">Chọn sự kiện, chọn cổng rồi bật camera hoặc nhập mã vé.</p>
+                <p id="resultMessage">Chọn sự kiện, chọn cổng rồi bật camera hoặc nhập mã an toàn.</p>
                 <dl id="resultMeta" class="result-meta" hidden>
-                    <div><dt>Mã vé</dt><dd id="metaTicket">-</dd></div>
+                    <div><dt>Mã vé nội bộ</dt><dd id="metaTicket">-</dd></div>
                     <div><dt>Ghế</dt><dd id="metaSeat">-</dd></div>
                     <div><dt>Khu vực</dt><dd id="metaZone">-</dd></div>
                     <div><dt>Chủ vé</dt><dd id="metaOwner">-</dd></div>

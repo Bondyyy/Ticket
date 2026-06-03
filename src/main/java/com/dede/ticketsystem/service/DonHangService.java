@@ -34,6 +34,9 @@ public class DonHangService {
     @Autowired
     private IdGeneratorService idGeneratorService;
 
+    @Autowired
+    private TicketCodeGeneratorService ticketCodeGeneratorService;
+
     public List<DonHang> layTatCa() {
         return donHangRepository.findAll();
     }
@@ -116,7 +119,7 @@ public class DonHangService {
             Ve v = new Ve();
             String maVe = idGeneratorService.nextVeId();
             v.setMaVe(maVe);
-            v.setMaQR("QR-" + maVe);
+            v.setMaQR(ticketCodeGeneratorService.generateUniqueTicketCode());
             v.setGiaVe(giaVe);
             v.setTrangThaiVe("Chưa sử dụng");
             v.setThoiGianPhat(new java.sql.Timestamp(System.currentTimeMillis()));

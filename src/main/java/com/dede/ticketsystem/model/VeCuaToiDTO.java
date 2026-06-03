@@ -12,6 +12,7 @@ public class VeCuaToiDTO {
     private BigDecimal giaVe;
     private String trangThaiVe;
     private Timestamp thoiGianBatDau;
+    private String safeCode;
     private String qrPayload;
     private String qrBase64;
 
@@ -86,6 +87,14 @@ public class VeCuaToiDTO {
 
     public void setThoiGianBatDau(Timestamp thoiGianBatDau) {
         this.thoiGianBatDau = thoiGianBatDau;
+    }
+
+    public String getSafeCode() {
+        return safeCode;
+    }
+
+    public void setSafeCode(String safeCode) {
+        this.safeCode = safeCode;
     }
 
     public String getQrPayload() {

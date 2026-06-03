@@ -186,7 +186,7 @@
                                     
                                     <div class="meta-item">
                                         <i class="bi bi-hash"></i>
-                                        <span th:text="'Mã vé: ' + ${tk.maVe}">VE-12345678</span>
+                                        <span th:text="'Mã vé nội bộ: ' + ${tk.maVe}">VE-12345678</span>
                                     </div>
                                 </div>
                                 
@@ -203,7 +203,7 @@
                                 <a th:href="@{/ve-cua-toi/{maVe}(maVe=${tk.maVe})}">
                                     <img th:src="'data:image/png;base64,' + ${tk.qrBase64}" alt="Mã QR vé" width="130" height="130">
                                 </a>
-                                <div class="text-muted mt-2" style="font-size: 11px;">Mã QR Soát Vé</div>
+                                <div class="text-muted mt-2" style="font-size: 11px;">Vé vào cổng</div>
                             </div>
                         </div>
                     </div>

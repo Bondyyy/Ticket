@@ -16,7 +16,7 @@
     <section class="scan-header">
         <div>
             <h1>Hệ Thống Soát Vé Cổng</h1>
-            <p>Quét QR hoặc nhập mã vé thủ công để xác thực vé tại cổng.</p>
+            <p>Quét QR hoặc nhập mã an toàn thủ công để xác thực vé tại cổng.</p>
         </div>
         <div class="scan-header-actions">
             <button id="btnManualSync" type="button" class="scan-btn scan-btn-outline" hidden>
@@ -89,12 +89,12 @@
                     </div>
                     <div id="resultTitle" class="result-title">SẴN SÀNG QUÉT</div>
                     <p id="resultDesc" class="result-desc">
-                        Hướng camera vào mã QR, chọn ảnh QR hoặc nhập mã vé thủ công.
+                        Hướng camera vào mã QR, chọn ảnh QR hoặc nhập mã an toàn thủ công.
                     </p>
 
                     <div id="resultMeta" class="result-meta" hidden>
                         <div class="result-meta-item">
-                            <span>Mã vé</span>
+                            <span>Mã vé nội bộ</span>
                             <strong id="metaTicketCode">-</strong>
                         </div>
                         <div class="result-meta-item">
@@ -166,13 +166,13 @@
                 </div>
 
                 <form id="manualScanForm" class="manual-form">
-                    <label for="manualQrInput">Nhập QR / Mã vé thủ công</label>
+                    <label for="manualQrInput">Nhập mã an toàn thủ công</label>
                     <div class="manual-input-row">
                         <input id="manualQrInput"
                                class="scan-control"
                                type="text"
                                autocomplete="off"
-                               placeholder="TICKET|maVe=...|maSK=...|maQR=... hoặc MaVe/MaQR"
+                               placeholder="Quét QR hoặc nhập mã an toàn, ví dụ DDT-7KQ9-HM4P-2XTA-R8VN"
                                disabled>
                         <button id="btnManualSubmit"
                                 type="submit"
@@ -203,7 +203,7 @@
                 <thead>
                 <tr>
                     <th>Thời gian</th>
-                    <th>Mã vé</th>
+                    <th>Mã vé nội bộ</th>
                     <th>Kết quả</th>
                     <th>Cổng soát</th>
                     <th>Nguồn</th>
@@ -580,7 +580,7 @@
                 banner.classList.add('result-danger');
                 icon.innerHTML = '<i class="bi bi-x-octagon-fill"></i>';
                 title.textContent = 'VÉ KHÔNG TÌM THẤY';
-                desc.textContent = 'Mã vé hoặc mã QR không tồn tại trên hệ thống.';
+                desc.textContent = 'Mã an toàn không tồn tại trên hệ thống.';
             }
 
             fillResultMeta({
@@ -634,7 +634,7 @@
             document.getElementById('resultTitle').textContent = 'ĐÃ LƯU OFFLINE';
             document.getElementById('resultDesc').textContent = 'Lượt quét đã được lưu trên thiết bị và sẽ đồng bộ khi có mạng.';
             fillResultMeta({
-                maVe: extractMaVeOrPayload(qrCode),
+                maVe: extractSafeCodeOrPayload(qrCode),
                 seatName: '-',
                 zoneName: 'Chờ đồng bộ',
                 ticketOwner: '-',
@@ -700,7 +700,7 @@
             const tbody = document.getElementById('historyTableBody');
             const offlineRows = pendingRows.map(item => ({
                 thoiGianQuet: Number(item.thoiGianQuet) || item.thoiGianQuet,
-                maVe: extractMaVeOrPayload(item.qrPayloadOrCode),
+                maVe: extractSafeCodeOrPayload(item.qrPayloadOrCode),
                 ketQuaQuet: 'Chờ đồng bộ',
                 congSoat: item.congSoat,
                 nguonDuLieu: 'Chờ đồng bộ'
@@ -792,12 +792,21 @@
             pill.textContent = pending.length;
         }
 
-        function extractMaVeOrPayload(payload) {
+        function extractSafeCodeOrPayload(payload) {
             if (!payload) return 'N/A';
+            if (payload.startsWith('DDE_TICKET|')) {
+                const codePart = payload.split('|').find(part => part.toLowerCase().startsWith('code='));
+                if (codePart) {
+                    return codePart.substring(5) || 'N/A';
+                }
+            }
             if (payload.startsWith('TICKET|')) {
-                const maVePart = payload.split('|').find(part => part.startsWith('maVe='));
-                if (maVePart) {
-                    return maVePart.substring(5) || 'N/A';
+                const codePart = payload.split('|').find(part => {
+                    const key = part.split('=')[0]?.trim().toLowerCase();
+                    return key === 'code' || key === 'maqr';
+                });
+                if (codePart) {
+                    return codePart.split('=').slice(1).join('=') || 'N/A';
                 }
             }
             return payload.length > 22 ? `${payload.substring(0, 22)}...` : payload;

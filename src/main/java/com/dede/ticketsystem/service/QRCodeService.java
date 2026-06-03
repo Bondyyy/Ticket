@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.Locale;
 
 @Service
 public class QRCodeService {
@@ -17,7 +18,11 @@ public class QRCodeService {
         if (ve == null) {
             return "";
         }
-        return "TICKET|maVe=" + ve.getMaVe() + "|maSK=" + ve.getMaSK() + "|maQR=" + ve.getMaQR();
+        String code = ve.getMaQR() == null ? "" : ve.getMaQR().trim().toUpperCase(Locale.ROOT);
+        if (code.isEmpty()) {
+            return "";
+        }
+        return "DDE_TICKET|v=1|code=" + code;
     }
 
     public String generateQRCodeBase64(String payload, int width, int height) {
