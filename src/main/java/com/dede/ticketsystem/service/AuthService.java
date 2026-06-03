@@ -39,10 +39,15 @@ public class AuthService {
     private IdGeneratorService idGeneratorService;
 
     @Transactional
-    public NguoiDung dangNhap(String tenTaiKhoan, String matKhau) {
+    public NguoiDung dangNhap(String identifier, String matKhau) {
+        String cleanIdentifier = normalizeBlank(identifier);
+        if (cleanIdentifier == null) {
+            throw new RuntimeException("Vui lòng nhập tên đăng nhập hoặc email.");
+        }
+
         NguoiDung nguoiDung = nguoiDungRepository
-                .findByTenTaiKhoan(tenTaiKhoan)
-                .orElseThrow(() -> new RuntimeException("Tên đăng nhập không tồn tại."));
+                .findByUsernameOrEmailIgnoreCase(cleanIdentifier)
+                .orElseThrow(() -> new RuntimeException("Tên đăng nhập hoặc email không tồn tại."));
 
         if ("Bị khóa".equals(nguoiDung.getTrangThaiND())) {
             throw new RuntimeException("Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ.");
@@ -79,10 +84,10 @@ public class AuthService {
         if (matKhau == null || matKhau.isBlank()) {
             throw new RuntimeException("Mật khẩu không được để trống.");
         }
-        if (nguoiDungRepository.findByTenTaiKhoan(cleanUsername).isPresent()) {
+        if (nguoiDungRepository.findByTenTaiKhoanIgnoreCase(cleanUsername).isPresent()) {
             throw new RuntimeException("Tên đăng nhập đã tồn tại.");
         }
-        if (nguoiDungRepository.findByEmail(cleanEmail).isPresent()) {
+        if (nguoiDungRepository.findByEmailIgnoreCase(cleanEmail).isPresent()) {
             throw new RuntimeException("Email đã được sử dụng.");
         }
     }
@@ -102,10 +107,10 @@ public class AuthService {
         if (cleanUsername == null || cleanEmail == null || pending.getMatKhauMaHoa() == null || pending.getMatKhauMaHoa().isBlank()) {
             throw new RuntimeException("Thông tin đăng ký không hợp lệ.");
         }
-        if (nguoiDungRepository.findByTenTaiKhoan(cleanUsername).isPresent()) {
+        if (nguoiDungRepository.findByTenTaiKhoanIgnoreCase(cleanUsername).isPresent()) {
             throw new RuntimeException("Tên đăng nhập đã tồn tại.");
         }
-        if (nguoiDungRepository.findByEmail(cleanEmail).isPresent()) {
+        if (nguoiDungRepository.findByEmailIgnoreCase(cleanEmail).isPresent()) {
             throw new RuntimeException("Email đã được sử dụng.");
         }
 

@@ -23,6 +23,7 @@ import com.dede.ticketsystem.repository.NguoiDungRepository;
 import com.dede.ticketsystem.repository.NhanVienRepository;
 import com.dede.ticketsystem.repository.SuKienBanToChucRepository;
 import com.dede.ticketsystem.util.DateTimeUtils;
+import com.dede.ticketsystem.util.ImageUrlUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -220,6 +221,35 @@ public class SuKienService {
         return clean.isEmpty() ? null : clean;
     }
 
+    private boolean normalizeImageFields(SuKien sk) {
+        if (sk == null) {
+            return false;
+        }
+
+        boolean changed = false;
+        String normalizedImage = ImageUrlUtil.normalizeImageUrl(sk.getHinhAnh());
+        if (!sameValue(sk.getHinhAnh(), normalizedImage)) {
+            sk.setHinhAnh(normalizedImage);
+            changed = true;
+        }
+
+        String normalizedThumb = ImageUrlUtil.normalizeImageUrl(sk.getHinhAnhThumb());
+        if (!sameValue(sk.getHinhAnhThumb(), normalizedThumb)) {
+            sk.setHinhAnhThumb(normalizedThumb);
+            changed = true;
+        }
+        return changed;
+    }
+
+    private boolean sameValue(String left, String right) {
+        String cleanLeft = normalizeNullable(left);
+        String cleanRight = normalizeNullable(right);
+        if (cleanLeft == null) {
+            return cleanRight == null;
+        }
+        return cleanLeft.equals(cleanRight);
+    }
+
     private String sortValue(String value) {
         return value == null ? "" : value.trim();
     }
@@ -327,9 +357,13 @@ public class SuKienService {
         if (sk == null) {
             return null;
         }
+        boolean changed = normalizeImageFields(sk);
         String derived = deriveTrangThaiTheoThoiGian(sk, now);
         if (!derived.equals(sk.getTrangThaiSK())) {
             sk.setTrangThaiSK(derived);
+            changed = true;
+        }
+        if (changed) {
             sk.setCapNhatLanCuoi(DateTimeUtils.truncateToMinute(new Timestamp(System.currentTimeMillis())));
             return suKienRepository.save(sk);
         }
@@ -629,8 +663,8 @@ public class SuKienService {
 
         sk.setTenSK(dto.getTenSK().trim());
         sk.setMoTa(dto.getMoTa());
-        String hinhAnh = normalizeNullable(dto.getHinhAnh());
-        String hinhAnhThumb = normalizeNullable(dto.getHinhAnhThumb());
+        String hinhAnh = ImageUrlUtil.normalizeImageUrl(dto.getHinhAnh());
+        String hinhAnhThumb = ImageUrlUtil.normalizeImageUrl(dto.getHinhAnhThumb());
         if (hasUpload(hinhAnhFile)) {
             hinhAnh = saveEventImage(sk.getMaSK(), "sk", hinhAnhFile);
         }
@@ -639,8 +673,8 @@ public class SuKienService {
         } else if (hinhAnhThumb == null && hinhAnh != null) {
             hinhAnhThumb = hinhAnh;
         }
-        sk.setHinhAnh(hinhAnh);
-        sk.setHinhAnhThumb(hinhAnhThumb);
+        sk.setHinhAnh(ImageUrlUtil.normalizeImageUrl(hinhAnh));
+        sk.setHinhAnhThumb(ImageUrlUtil.normalizeImageUrl(hinhAnhThumb));
         sk.setMoTaNgan(dto.getMoTaNgan());
         sk.setTags(dto.getTags());
 
@@ -702,7 +736,7 @@ public class SuKienService {
         sk.setMoTa(dto.getMoTa());
 
         String hinhAnh = sk.getHinhAnh();
-        String dtoHinhAnh = normalizeNullable(dto.getHinhAnh());
+        String dtoHinhAnh = ImageUrlUtil.normalizeImageUrl(dto.getHinhAnh());
         if (dtoHinhAnh != null) {
             hinhAnh = dtoHinhAnh;
         }
@@ -711,7 +745,7 @@ public class SuKienService {
         }
 
         String hinhAnhThumb = sk.getHinhAnhThumb();
-        String dtoHinhAnhThumb = normalizeNullable(dto.getHinhAnhThumb());
+        String dtoHinhAnhThumb = ImageUrlUtil.normalizeImageUrl(dto.getHinhAnhThumb());
         if (dtoHinhAnhThumb != null) {
             hinhAnhThumb = dtoHinhAnhThumb;
         }
@@ -719,8 +753,8 @@ public class SuKienService {
             hinhAnhThumb = saveEventImage(maSK, "sk_thumb", hinhAnhThumbFile);
         }
 
-        sk.setHinhAnh(hinhAnh);
-        sk.setHinhAnhThumb(hinhAnhThumb);
+        sk.setHinhAnh(ImageUrlUtil.normalizeImageUrl(hinhAnh));
+        sk.setHinhAnhThumb(ImageUrlUtil.normalizeImageUrl(hinhAnhThumb));
         sk.setMoTaNgan(dto.getMoTaNgan());
         sk.setTags(dto.getTags());
 

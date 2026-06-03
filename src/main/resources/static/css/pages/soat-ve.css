@@ -16,6 +16,19 @@
     color: var(--scan-text);
 }
 
+html[data-theme="dark"] .scan-page {
+    --scan-bg: var(--bg);
+    --scan-surface: var(--surface);
+    --scan-primary: #60a5fa;
+    --scan-primary-dark: #93c5fd;
+    --scan-success: #34d399;
+    --scan-warning: #fbbf24;
+    --scan-danger: #fb7185;
+    --scan-text: var(--text);
+    --scan-muted: var(--muted);
+    --scan-border: var(--border);
+}
+
 .scan-page::before {
     content: "";
     position: fixed;
@@ -24,6 +37,45 @@
     background:
         linear-gradient(180deg, rgba(219, 234, 254, 0.52), rgba(245, 247, 251, 0.92) 320px),
         var(--scan-bg);
+}
+
+html[data-theme="dark"] .scan-page::before {
+    background:
+        linear-gradient(180deg, rgba(96, 165, 250, 0.10), rgba(7, 10, 18, 0.96) 320px),
+        var(--scan-bg);
+}
+
+html[data-theme="dark"] .scan-card,
+html[data-theme="dark"] .result-banner,
+html[data-theme="dark"] .qr-reader-shell,
+html[data-theme="dark"] .history-table th,
+html[data-theme="dark"] .result-meta-item {
+    background: var(--scan-surface);
+    border-color: var(--scan-border);
+    color: var(--scan-text);
+}
+
+html[data-theme="dark"] .scan-control,
+html[data-theme="dark"] #qr-reader button {
+    background: var(--surface-2);
+    border-color: var(--scan-border);
+    color: var(--scan-text);
+}
+
+html[data-theme="dark"] .scan-btn-outline,
+html[data-theme="dark"] .staff-tag,
+html[data-theme="dark"] .source-badge,
+html[data-theme="dark"] .history-empty i,
+html[data-theme="dark"] .qr-placeholder i,
+html[data-theme="dark"] .result-icon {
+    background: var(--surface-2);
+    border-color: var(--scan-border);
+    color: var(--scan-primary-dark);
+}
+
+html[data-theme="dark"] .history-table th,
+html[data-theme="dark"] .history-table td {
+    border-color: var(--scan-border);
 }
 
 .scan-header {

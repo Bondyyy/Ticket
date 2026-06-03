@@ -15,7 +15,7 @@
     <div class="login-card">
 
         <div class="brand-logo">
-            <div class="logo-icon"><i class="bi bi-ticket-perforated-fill"></i></div>
+            <div class="logo-icon"><img th:src="@{/images/logo-mai.svg}" alt=""></div>
             <span class="logo-text">Dề Dê Tickets</span>
         </div>
 
@@ -34,13 +34,13 @@
             <input type="hidden" name="redirectUrl" th:value="${redirectUrl}">
 
             <div class="mb-4">
-                <label class="form-label" for="tenTaiKhoan">Tên đăng nhập</label>
+                <label class="form-label" for="tenTaiKhoan">Tên đăng nhập hoặc email</label>
                 <div class="input-wrapper">
                     <input class="dd-input"
                            type="text"
                            id="tenTaiKhoan"
                            name="tenTaiKhoan"
-                           placeholder="Nhập tên đăng nhập..."
+                           placeholder="Nhập tên đăng nhập hoặc email..."
                            th:value="${tenTaiKhoanCu}"
                            autocomplete="username"
                            required>

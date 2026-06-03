@@ -39,9 +39,12 @@
             .btn-book-primary { color: #fff; background: linear-gradient(135deg, #2563eb, #7c3aed); box-shadow: 0 18px 34px rgba(37,99,235,.26); }
             .btn-book-disabled { color: #e2e8f0; background: rgba(148,163,184,.22); cursor: not-allowed; }
             .detail-hero-media { position: relative; min-height: 520px; background: linear-gradient(135deg, #1d4ed8, #f97316); }
-            .detail-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .detail-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; position: relative; z-index: 2; }
             .detail-hero-media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,23,42,.46), transparent 52%); pointer-events: none; }
-            .detail-placeholder { height: 100%; min-height: 520px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.86); font-weight: 900; font-size: 28px; }
+            .detail-placeholder { position: absolute; inset: 0; min-height: 520px; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: rgba(255,255,255,.9); font-weight: 900; font-size: 28px; text-align: center; padding: 28px; background: linear-gradient(135deg, #1d4ed8, #f59e0b); }
+            .detail-placeholder i { font-size: 54px; }
+            .detail-placeholder.is-visible,
+            .detail-hero-media.is-missing-image .detail-placeholder { display: flex; }
             .ticket-section { margin-top: 42px; }
             .ticket-section-header { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
             .ticket-section h2 { margin: 0; color: #0f172a; font-size: clamp(28px, 3vw, 40px); font-weight: 900; }
@@ -119,10 +122,12 @@
         </div>
 
         <div class="detail-hero-media">
-            <img th:if="${suKien.hinhAnh != null and !suKien.hinhAnh.isBlank()}" th:src="${suKien.hinhAnh}" th:alt="${suKien.tenSK}">
-            <img th:if="${(suKien.hinhAnh == null or suKien.hinhAnh.isBlank()) and suKien.hinhAnhThumb != null and !suKien.hinhAnhThumb.isBlank()}" th:src="${suKien.hinhAnhThumb}" th:alt="${suKien.tenSK}">
-            <div class="detail-placeholder" th:if="${(suKien.hinhAnh == null or suKien.hinhAnh.isBlank()) and (suKien.hinhAnhThumb == null or suKien.hinhAnhThumb.isBlank())}">
-                Dề Dê Tickets
+            <img th:if="${suKien.hinhAnh != null and !suKien.hinhAnh.isBlank()}" th:src="${suKien.hinhAnh}" th:alt="${suKien.tenSK}" onerror="this.hidden=true; this.parentElement.classList.add('is-missing-image');">
+            <img th:if="${(suKien.hinhAnh == null or suKien.hinhAnh.isBlank()) and suKien.hinhAnhThumb != null and !suKien.hinhAnhThumb.isBlank()}" th:src="${suKien.hinhAnhThumb}" th:alt="${suKien.tenSK}" onerror="this.hidden=true; this.parentElement.classList.add('is-missing-image');">
+            <div class="detail-placeholder"
+                 th:classappend="${(suKien.hinhAnh == null or suKien.hinhAnh.isBlank()) and (suKien.hinhAnhThumb == null or suKien.hinhAnhThumb.isBlank())} ? ' is-visible' : ''">
+                <i class="bi bi-calendar-event"></i>
+                <span th:text="${suKien.tenSK}">Dề Dê Tickets</span>
             </div>
         </div>
     </section>

@@ -333,9 +333,13 @@ public class BaoCaoService {
         if (normalize(maSK) == null) {
             return;
         }
-        sql.append("AND EXISTS (SELECT 1 FROM VE v_event WHERE v_event.MaDonHang = ")
+        sql.append("AND (EXISTS (SELECT 1 FROM VE v_event WHERE v_event.MaDonHang = ")
                 .append(orderAlias)
-                .append(".MaDonHang AND v_event.MaSK = ?) ");
+                .append(".MaDonHang AND v_event.MaSK = ?) ")
+                .append("OR EXISTS (SELECT 1 FROM DONHANG_CHITIET ct_event WHERE ct_event.MaDonHang = ")
+                .append(orderAlias)
+                .append(".MaDonHang AND ct_event.MaSK = ?)) ");
+        params.add(normalize(maSK));
         params.add(normalize(maSK));
     }
 

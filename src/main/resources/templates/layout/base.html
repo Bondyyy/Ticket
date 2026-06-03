@@ -17,14 +17,11 @@
     <!-- CSS toàn cục -->
     <script>
         (function () {
-            const savedMode = localStorage.getItem('dede_theme_mode') || 'system';
-            const savedBrightness = localStorage.getItem('dede_ui_brightness') || '100';
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const resolvedTheme = savedMode === 'system' ? (prefersDark ? 'dark' : 'light') : savedMode;
-            document.documentElement.setAttribute('data-theme', resolvedTheme);
-            document.documentElement.style.setProperty('--ui-brightness', String(Math.max(80, Math.min(120, Number(savedBrightness) || 100)) / 100));
+            const savedMode = localStorage.getItem('dede_theme_mode');
+            document.documentElement.setAttribute('data-theme', savedMode === 'dark' ? 'dark' : 'light');
         })();
     </script>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/logo-mai.svg}">
     <link th:href="@{/css/main.css}" rel="stylesheet">
 
     <!-- CSS riêng từng trang (nếu có) -->
@@ -36,7 +33,8 @@
     <nav th:if="${showNavbar != false}" class="navbar navbar-expand-xl dd-navbar">
         <div class="page-container nav-container">
             <a class="navbar-brand" th:href="@{/}">
-                <i class="bi bi-ticket-perforated-fill me-2"></i>Dề Dê Tickets
+                <img class="brand-mai-logo" th:src="@{/images/logo-mai.svg}" alt="">
+                <span>Dề Dê Tickets</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
                 <span class="navbar-toggler-icon"></span>
@@ -122,15 +120,9 @@
                         <div class="dropdown-menu dropdown-menu-end theme-menu-panel">
                             <label for="themeModeSelect">Giao diện</label>
                             <select id="themeModeSelect" class="form-select form-select-sm">
-                                <option value="system">Theo hệ thống</option>
                                 <option value="light">Sáng</option>
                                 <option value="dark">Tối</option>
                             </select>
-                            <label for="uiBrightnessRange">Độ sáng giao diện</label>
-                            <div class="brightness-row">
-                                <input id="uiBrightnessRange" type="range" min="80" max="120" value="100">
-                                <span id="uiBrightnessValue">100%</span>
-                            </div>
                         </div>
                     </li>
                     <!-- Chưa đăng nhập -->
@@ -187,7 +179,10 @@
         <div class="page-container py-4">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <span class="fw-semibold"><i class="bi bi-ticket-perforated-fill me-1"></i>Dề Dê Tickets</span>
+                    <span class="footer-brand fw-semibold">
+                        <img class="brand-mai-logo brand-mai-logo-sm" th:src="@{/images/logo-mai.svg}" alt="">
+                        Dề Dê Tickets
+                    </span>
                     <span class="text-muted ms-2" style="font-size: 13px;">© 2025 ITPJ2602 – Nhóm SPRING</span>
                 </div>
                 <div class="col-md-6 text-md-end mt-2 mt-md-0">
@@ -211,52 +206,29 @@
             });
 
             const modeSelect = document.getElementById('themeModeSelect');
-            const brightnessRange = document.getElementById('uiBrightnessRange');
-            const brightnessValue = document.getElementById('uiBrightnessValue');
             const themeButton = document.getElementById('themeModeButton');
-            const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
-            function clampBrightness(value) {
-                return Math.max(80, Math.min(120, Number(value) || 100));
-            }
-
-            function resolveTheme(mode) {
-                return mode === 'system' ? (media && media.matches ? 'dark' : 'light') : mode;
-            }
-
-            function applyTheme(mode, brightness, persist) {
-                const cleanMode = ['light', 'dark', 'system'].includes(mode) ? mode : 'system';
-                const cleanBrightness = clampBrightness(brightness);
-                document.documentElement.setAttribute('data-theme', resolveTheme(cleanMode));
-                document.documentElement.style.setProperty('--ui-brightness', String(cleanBrightness / 100));
+            function applyTheme(mode, persist) {
+                const cleanMode = mode === 'dark' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', cleanMode);
                 if (modeSelect) modeSelect.value = cleanMode;
-                if (brightnessRange) brightnessRange.value = cleanBrightness;
-                if (brightnessValue) brightnessValue.textContent = cleanBrightness + '%';
                 if (themeButton) {
                     const icon = themeButton.querySelector('i');
-                    if (icon) icon.className = cleanMode === 'dark' ? 'bi bi-moon-stars' : cleanMode === 'light' ? 'bi bi-sun' : 'bi bi-circle-half';
+                    if (icon) icon.className = cleanMode === 'dark' ? 'bi bi-moon-stars' : 'bi bi-sun';
                 }
                 if (persist) {
                     localStorage.setItem('dede_theme_mode', cleanMode);
-                    localStorage.setItem('dede_ui_brightness', String(cleanBrightness));
                     fetch('/api/user-preferences/theme', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                        body: JSON.stringify({ themeMode: cleanMode, brightness: cleanBrightness })
+                        body: JSON.stringify({ themeMode: cleanMode })
                     }).catch(() => {});
                 }
             }
 
-            const initialMode = localStorage.getItem('dede_theme_mode') || 'system';
-            const initialBrightness = localStorage.getItem('dede_ui_brightness') || '100';
-            applyTheme(initialMode, initialBrightness, false);
-            modeSelect?.addEventListener('change', () => applyTheme(modeSelect.value, brightnessRange?.value || 100, true));
-            brightnessRange?.addEventListener('input', () => applyTheme(modeSelect?.value || 'system', brightnessRange.value, true));
-            media?.addEventListener?.('change', () => {
-                if ((localStorage.getItem('dede_theme_mode') || 'system') === 'system') {
-                    applyTheme('system', localStorage.getItem('dede_ui_brightness') || '100', false);
-                }
-            });
+            const initialMode = localStorage.getItem('dede_theme_mode') === 'dark' ? 'dark' : 'light';
+            applyTheme(initialMode, false);
+            modeSelect?.addEventListener('change', () => applyTheme(modeSelect.value, true));
         });
     </script>
     <script th:src="@{/js/ui-motion.js}" defer></script>

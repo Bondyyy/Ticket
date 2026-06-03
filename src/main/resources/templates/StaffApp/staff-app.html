@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Dề Dê Check-in">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/images/checkin-icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/images/checkin-icon.svg">
+    <link rel="stylesheet" href="/css/pages/staff-app.css">
+    <title>Dề Dê Check-in</title>
+</head>
+<body>
+<div class="app-shell" th:attr="data-staff-ready=${staffProfileError == null}">
+    <header class="app-header">
+        <div class="brand-lockup">
+            <img class="brand-logo" src="/images/logo-mai.svg" alt="Dề Dê Check-in">
+            <div>
+                <strong>Dề Dê Check-in</strong>
+                <span th:text="${maNV != null ? 'Nhân viên ' + maNV : 'Mobile staff app'}">Mobile staff app</span>
+            </div>
+        </div>
+        <span id="connectionBadge" class="connection-badge is-online">
+            <span class="pulse-dot"></span>
+            <span id="connectionText">Online</span>
+        </span>
+    </header>
+
+    <main class="app-main">
+        <div th:if="${staffProfileError != null}" class="app-alert app-alert-danger">
+            <strong>Không thể soát vé</strong>
+            <span th:text="${staffProfileError}">Tài khoản của bạn chưa được liên kết với hồ sơ nhân viên, vui lòng liên hệ quản trị viên.</span>
+        </div>
+
+        <div id="offlineBanner" class="app-alert app-alert-warning" hidden>
+            <strong>Đang offline</strong>
+            <span>Lượt quét sẽ chỉ được lưu tạm và chờ đồng bộ, không xác nhận vé hợp lệ khi chưa lên server.</span>
+        </div>
+
+        <section id="tab-scan" class="app-tab is-active" data-tab-panel="scan">
+            <article class="panel event-panel">
+                <div class="panel-title-row">
+                    <div>
+                        <span class="panel-kicker">Sự kiện</span>
+                        <h1>Chọn sự kiện trước khi quét</h1>
+                    </div>
+                    <button id="refreshEventsBtn" type="button" class="icon-button" aria-label="Tải lại sự kiện">
+                        <span aria-hidden="true">↻</span>
+                    </button>
+                </div>
+
+                <label class="field-label" for="eventSelect">Sự kiện cần soát vé</label>
+                <select id="eventSelect" class="app-control">
+                    <option value="">Chọn sự kiện</option>
+                    <option th:each="event : ${events}"
+                            th:value="${event.maSK}"
+                            th:text="${event.maSK + ' - ' + event.tenSK}"
+                            th:attr="data-name=${event.tenSK},
+                                     data-status=${event.trangThaiSK},
+                                     data-start=${event.thoiGianBatDau},
+                                     data-end=${event.thoiGianKetThuc},
+                                     data-venue=${event.tenDiaDiem},
+                                     data-address=${event.diaChi},
+                                     data-city=${event.thanhPho}">
+                        SK0001 - Sự kiện demo
+                    </option>
+                </select>
+
+                <div id="eventSummary" class="event-summary is-empty">
+                    <strong>Chưa chọn sự kiện</strong>
+                    <span>Vui lòng chọn sự kiện trước khi bật camera hoặc nhập mã.</span>
+                </div>
+            </article>
+
+            <article class="panel gate-panel">
+                <span class="panel-kicker">Cổng soát</span>
+                <div class="gate-grid" role="group" aria-label="Chọn cổng soát">
+                    <button type="button" class="gate-chip is-active" data-gate="Cổng chính">Cổng chính</button>
+                    <button type="button" class="gate-chip" data-gate="Cổng A">Cổng A</button>
+                    <button type="button" class="gate-chip" data-gate="Cổng B">Cổng B</button>
+                    <button type="button" class="gate-chip" data-gate="Cổng VIP">Cổng VIP</button>
+                    <button type="button" class="gate-chip" data-gate="Cổng GA">Cổng GA</button>
+                </div>
+                <label class="field-label" for="customGateInput">Tên cổng tùy chỉnh</label>
+                <input id="customGateInput" class="app-control" type="text" autocomplete="off" placeholder="Nhập tên cổng khác nếu cần">
+            </article>
+
+            <article class="panel camera-panel">
+                <div class="panel-title-row">
+                    <div>
+                        <span class="panel-kicker">Camera</span>
+                        <h2>Quét QR bằng camera sau</h2>
+                    </div>
+                    <span id="cameraSupportBadge" class="mini-badge">Đang kiểm tra</span>
+                </div>
+
+                <div id="eventRequiredNotice" class="large-warning">
+                    Vui lòng chọn sự kiện trước khi soát vé.
+                </div>
+
+                <div class="camera-frame">
+                    <video id="cameraVideo" playsinline muted></video>
+                    <canvas id="scanCanvas" hidden></canvas>
+                    <div id="cameraPlaceholder" class="camera-placeholder">
+                        <img src="/images/checkin-icon.svg" alt="">
+                        <strong>Camera chưa bật</strong>
+                        <span>Nếu trình duyệt không hỗ trợ camera, hãy dùng nhập mã thủ công.</span>
+                    </div>
+                    <div class="scan-corners" aria-hidden="true"></div>
+                </div>
+
+                <div class="camera-actions">
+                    <button id="startCameraBtn" type="button" class="primary-action">Bật camera</button>
+                    <button id="stopCameraBtn" type="button" class="secondary-action" disabled>Dừng camera</button>
+                    <button id="switchCameraBtn" type="button" class="secondary-action">Đổi camera</button>
+                </div>
+
+                <p id="cameraHint" class="muted-note">Camera hoạt động tốt nhất trên HTTPS hoặc localhost. Trên LAN HTTP, một số trình duyệt có thể chặn camera.</p>
+            </article>
+
+            <article class="panel manual-panel">
+                <span class="panel-kicker">Nhập thủ công</span>
+                <label class="field-label" for="manualCodeInput">Nhập mã QR hoặc mã vé</label>
+                <input id="manualCodeInput" class="app-control code-input" type="text" autocomplete="off" inputmode="text" placeholder="TICKET|maVe=... hoặc MaVe/MaQR">
+                <div class="manual-actions">
+                    <button id="manualSubmitBtn" type="button" class="primary-action">Soát vé</button>
+                    <button id="pasteCodeBtn" type="button" class="secondary-action">Dán mã</button>
+                    <button id="clearCodeBtn" type="button" class="secondary-action">Xóa</button>
+                </div>
+            </article>
+
+            <article id="resultCard" class="result-card result-idle" aria-live="polite">
+                <div id="resultSymbol" class="result-symbol">⌁</div>
+                <h2 id="resultTitle">SẴN SÀNG SOÁT VÉ</h2>
+                <p id="resultMessage">Chọn sự kiện, chọn cổng rồi bật camera hoặc nhập mã vé.</p>
+                <dl id="resultMeta" class="result-meta" hidden>
+                    <div><dt>Mã vé</dt><dd id="metaTicket">-</dd></div>
+                    <div><dt>Ghế</dt><dd id="metaSeat">-</dd></div>
+                    <div><dt>Khu vực</dt><dd id="metaZone">-</dd></div>
+                    <div><dt>Chủ vé</dt><dd id="metaOwner">-</dd></div>
+                    <div><dt>Thời gian</dt><dd id="metaTime">-</dd></div>
+                    <div><dt>Xử lý</dt><dd id="metaDuration">-</dd></div>
+                </dl>
+            </article>
+        </section>
+
+        <section id="tab-history" class="app-tab" data-tab-panel="history">
+            <article class="panel">
+                <div class="panel-title-row">
+                    <div>
+                        <span class="panel-kicker">Lịch sử</span>
+                        <h1>10 lượt quét gần nhất</h1>
+                    </div>
+                    <button id="syncNowBtn" type="button" class="primary-action compact-action">
+                        Đồng bộ ngay
+                        <span id="pendingCount">0</span>
+                    </button>
+                </div>
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">Chưa có lịch sử quét.</div>
+                </div>
+            </article>
+        </section>
+
+        <section id="tab-install" class="app-tab" data-tab-panel="install">
+            <article class="panel install-panel">
+                <span class="panel-kicker">Cài app</span>
+                <h1>Cài Dề Dê Check-in lên màn hình chính</h1>
+                <p>Module này có thể mở như app trên điện thoại, dùng camera để soát vé và lưu lượt quét khi mất mạng.</p>
+                <button id="installAppBtn" type="button" class="primary-action install-action" hidden>Cài Dề Dê Check-in</button>
+                <div id="installInstructions" class="install-instructions">
+                    <strong>Android Chrome</strong>
+                    <span>Mở menu ⋮ rồi chọn Cài đặt ứng dụng hoặc Thêm vào màn hình chính.</span>
+                    <strong>iPhone Safari</strong>
+                    <span>Bấm nút Chia sẻ rồi chọn Thêm vào Màn hình chính.</span>
+                </div>
+            </article>
+        </section>
+
+        <section id="tab-account" class="app-tab" data-tab-panel="account">
+            <article class="panel account-panel">
+                <span class="panel-kicker">Tài khoản</span>
+                <h1 th:text="${tenTaiKhoan}">staff001</h1>
+                <dl class="account-list">
+                    <div><dt>Mã nhân viên</dt><dd th:text="${maNV != null ? maNV : 'Chưa liên kết'}">NV0001</dd></div>
+                    <div><dt>Quyền truy cập</dt><dd>STAFF / ADMIN</dd></div>
+                    <div><dt>Phiên làm việc</dt><dd>Dùng session đăng nhập hiện tại, không lưu mật khẩu trên thiết bị.</dd></div>
+                </dl>
+                <a class="secondary-action account-link" href="/soat-ve">Mở trang soát vé desktop</a>
+                <a class="danger-link" href="/dang-xuat">Đăng xuất</a>
+            </article>
+        </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Điều hướng Dề Dê Check-in">
+        <button type="button" class="nav-item is-active" data-tab="scan"><span>Quét vé</span></button>
+        <button type="button" class="nav-item" data-tab="history"><span>Lịch sử</span><b id="navPendingDot" hidden>0</b></button>
+        <button type="button" class="nav-item" data-tab="install"><span>Cài app</span></button>
+        <button type="button" class="nav-item" data-tab="account"><span>Tài khoản</span></button>
+    </nav>
+</div>
+
+<div id="sessionOverlay" class="session-overlay" hidden>
+    <div>
+        <h2>Phiên đăng nhập đã hết hạn</h2>
+        <p>Vui lòng đăng nhập lại để tiếp tục soát vé.</p>
+        <a href="/dang-nhap?redirect=/staff-app">Đăng nhập lại</a>
+    </div>
+</div>
+
+<script src="/js/staff-app.js" defer></script>
+</body>
+</html>

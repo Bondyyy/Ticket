@@ -103,7 +103,6 @@ html {
     min-height: 100%;
     scroll-behavior: smooth;
     scrollbar-gutter: stable;
-    filter: brightness(var(--ui-brightness, 1));
 }
 
 body {
@@ -264,6 +263,7 @@ html[data-theme="dark"] .dd-navbar {
 .dd-navbar .navbar-brand {
     display: inline-flex;
     align-items: center;
+    gap: 10px;
     color: var(--text) !important;
     font-size: 21px;
     font-weight: 800;
@@ -271,6 +271,28 @@ html[data-theme="dark"] .dd-navbar {
     min-height: 48px;
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+.brand-mai-logo {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: inline-block;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 10px rgba(245, 158, 11, 0.22));
+}
+
+.brand-mai-logo-sm {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    vertical-align: middle;
+}
+
+.footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .dd-navbar .navbar-toggler {
@@ -427,7 +449,7 @@ html[data-theme="dark"] .dd-navbar {
 }
 
 .theme-menu-panel {
-    width: 260px;
+    width: 190px;
     padding: 14px;
 }
 
@@ -437,28 +459,6 @@ html[data-theme="dark"] .dd-navbar {
     color: var(--text);
     font-size: 12px;
     font-weight: 800;
-}
-
-.theme-menu-panel label:not(:first-child) {
-    margin-top: 12px;
-}
-
-.brightness-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 48px;
-    align-items: center;
-    gap: 10px;
-}
-
-.brightness-row input {
-    width: 100%;
-}
-
-.brightness-row span {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 800;
-    text-align: right;
 }
 
 .dropdown-item {
@@ -525,6 +525,160 @@ html[data-theme="dark"] td,
 html[data-theme="dark"] th {
     color: var(--text);
     border-color: var(--border);
+}
+
+html[data-theme="dark"] ::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+html[data-theme="dark"] .text-dark,
+html[data-theme="dark"] .text-body,
+html[data-theme="dark"] .fw-bold.text-dark,
+html[data-theme="dark"] .fw-semibold.text-dark {
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .text-muted {
+    color: var(--muted) !important;
+}
+
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .dd-card,
+html[data-theme="dark"] .dropdown-menu,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .modal-box,
+html[data-theme="dark"] .filter-card,
+html[data-theme="dark"] .chart-card,
+html[data-theme="dark"] .checkout-card,
+html[data-theme="dark"] .ticket-card,
+html[data-theme="dark"] .order-group-card,
+html[data-theme="dark"] .sub-tickets-table,
+html[data-theme="dark"] .glass-header,
+html[data-theme="dark"] .quick-path-card,
+html[data-theme="dark"] .ticket-mockup-card,
+html[data-theme="dark"] .mobile-mockup,
+html[data-theme="dark"] .mini-event-card,
+html[data-theme="dark"] .empty-events {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .admin-page,
+html[data-theme="dark"] .dashboard-page,
+html[data-theme="dark"] .booking-page {
+    background: var(--bg) !important;
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .admin-page .main-header,
+html[data-theme="dark"] .admin-page .toolbar,
+html[data-theme="dark"] .admin-page .table-card,
+html[data-theme="dark"] .admin-page .stat-card,
+html[data-theme="dark"] .admin-page .role-panel,
+html[data-theme="dark"] .admin-page .modal-box,
+html[data-theme="dark"] .admin-page .modal-header,
+html[data-theme="dark"] .admin-page .modal-footer,
+html[data-theme="dark"] .admin-page .pagination-bar,
+html[data-theme="dark"] .admin-page .organizer-row,
+html[data-theme="dark"] .admin-page .organizer-empty,
+html[data-theme="dark"] .admin-page .stage-type-summary,
+html[data-theme="dark"] .admin-page .autocomplete-menu,
+html[data-theme="dark"] .admin-page .image-upload-card,
+html[data-theme="dark"] .admin-page .image-preview,
+html[data-theme="dark"] .admin-page .roles-group label,
+html[data-theme="dark"] .admin-page .assigned-user-row {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .admin-page thead tr,
+html[data-theme="dark"] .admin-page tbody tr:hover,
+html[data-theme="dark"] .admin-page .btn-filter,
+html[data-theme="dark"] .admin-page .btn-close-modal,
+html[data-theme="dark"] .admin-page .btn-cancel,
+html[data-theme="dark"] .admin-page .pag-btn,
+html[data-theme="dark"] .events-toolbar,
+html[data-theme="dark"] .empty-ticket-state,
+html[data-theme="dark"] .seat-area,
+html[data-theme="dark"] .seat-area-header,
+html[data-theme="dark"] .result-banner,
+html[data-theme="dark"] .qr-reader-shell,
+html[data-theme="dark"] .history-table th,
+html[data-theme="dark"] .history-table tbody tr:hover td,
+html[data-theme="dark"] .result-meta-item {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .admin-page h1,
+html[data-theme="dark"] .admin-page h2,
+html[data-theme="dark"] .admin-page h3,
+html[data-theme="dark"] .admin-page h4,
+html[data-theme="dark"] .admin-page th,
+html[data-theme="dark"] .admin-page td,
+html[data-theme="dark"] .admin-page label,
+html[data-theme="dark"] .admin-page .value,
+html[data-theme="dark"] .admin-page .role-panel-title,
+html[data-theme="dark"] .admin-page .form-section-title h4,
+html[data-theme="dark"] .booking-page h2,
+html[data-theme="dark"] .booking-page h3,
+html[data-theme="dark"] .checkout-body h3,
+html[data-theme="dark"] .info-value,
+html[data-theme="dark"] .summary-title,
+html[data-theme="dark"] .standing-zone-card h3,
+html[data-theme="dark"] .sub-stat-val,
+html[data-theme="dark"] .value-large {
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .admin-page .header-right,
+html[data-theme="dark"] .admin-page .label,
+html[data-theme="dark"] .admin-page .form-hint,
+html[data-theme="dark"] .admin-page .assigned-user-row small,
+html[data-theme="dark"] .legend-item,
+html[data-theme="dark"] .info-label,
+html[data-theme="dark"] .standing-zone-meta,
+html[data-theme="dark"] .device-badge,
+html[data-theme="dark"] .chart-empty-state {
+    color: var(--muted) !important;
+}
+
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select,
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] .filter-select,
+html[data-theme="dark"] .filter-control,
+html[data-theme="dark"] .scan-control,
+html[data-theme="dark"] .admin-page .search-wrapper input,
+html[data-theme="dark"] .admin-page .form-control,
+html[data-theme="dark"] .admin-page .form-group input,
+html[data-theme="dark"] .admin-page .form-group select,
+html[data-theme="dark"] .admin-page .assign-role-form select {
+    background-color: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+html[data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > *,
+html[data-theme="dark"] .table-hover > tbody > tr:hover > * {
+    color: var(--text) !important;
+    background-color: var(--surface-2) !important;
+}
+
+html[data-theme="dark"] .btn-dd-outline,
+html[data-theme="dark"] .btn-hero-secondary,
+html[data-theme="dark"] .nav-login-btn,
+html[data-theme="dark"] .scan-btn-outline {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
 }
 
 .dropdown-item.text-danger {

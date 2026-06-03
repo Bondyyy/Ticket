@@ -21,7 +21,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF để demo cho nhanh, production nên bật
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/dang-nhap", "/dang-ky", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        .requestMatchers(
+                                "/dang-nhap",
+                                "/dang-ky",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/uploads/**",
+                                "/manifest.webmanifest",
+                                "/service-worker.js"
+                        ).permitAll()
                         .anyRequest().permitAll())
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.permitAll());

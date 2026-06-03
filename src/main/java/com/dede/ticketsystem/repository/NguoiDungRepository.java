@@ -14,11 +14,20 @@ public interface NguoiDungRepository extends JpaRepository<NguoiDung, String> {
 
     Optional<NguoiDung> findByTenTaiKhoan(String tenTaiKhoan);
 
+    Optional<NguoiDung> findByTenTaiKhoanIgnoreCase(String tenTaiKhoan);
+
     Optional<NguoiDung> findByEmail(String email);
+
+    Optional<NguoiDung> findByEmailIgnoreCase(String email);
 
     boolean existsByTenTaiKhoan(String tenTaiKhoan);
 
     boolean existsByEmail(String email);
+
+    @Query("SELECT nd FROM NguoiDung nd WHERE " +
+           "LOWER(nd.tenTaiKhoan) = LOWER(:identifier) OR " +
+           "LOWER(nd.email) = LOWER(:identifier)")
+    Optional<NguoiDung> findByUsernameOrEmailIgnoreCase(@Param("identifier") String identifier);
 
     @Query("SELECT nd FROM NguoiDung nd WHERE " +
            "LOWER(nd.tenTaiKhoan) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

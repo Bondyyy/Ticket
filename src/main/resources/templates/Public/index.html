@@ -39,21 +39,21 @@
         <div class="hero-visual ticket-hero-visual" aria-label="Minh họa vé điện tử Dề Dê Tickets">
             <div class="stage-lights"></div>
             <div class="concert-poster">
-                <span>LIVE NIGHT</span>
-                <strong>Summer Pulse</strong>
+                <span>ĐÊM NHẠC</span>
+                <strong>Sóng Hè</strong>
                 <small>20:00 • Saigon Arena</small>
             </div>
             <div class="phone-ticket">
                 <div class="phone-notch"></div>
                 <div class="phone-screen">
-                    <span class="ticket-label">QR Ticket</span>
+                    <span class="ticket-label">Vé QR</span>
                     <div class="qr-mock">
                         <span></span><span></span><span></span><span></span>
                         <span></span><span></span><span></span><span></span>
                         <span></span><span></span><span></span><span></span>
                         <span></span><span></span><span></span><span></span>
                     </div>
-                    <strong>GA Standing</strong>
+                    <strong>Khu đứng GA</strong>
                     <small>Check-in dưới 5 giây</small>
                 </div>
             </div>
@@ -90,10 +90,13 @@
         <div class="event-grid" th:if="${featuredEvents != null and !featuredEvents.isEmpty()}">
             <article class="event-card ui-hover-card" th:each="sk : ${featuredEvents}">
                 <a class="event-media" th:href="@{/su-kien/{maSK}(maSK=${sk.maSK})}">
-                    <img th:if="${sk.hinhAnhThumb != null and !sk.hinhAnhThumb.isBlank()}" th:src="${sk.hinhAnhThumb}" th:alt="${sk.tenSK}">
-                    <div class="event-fallback" th:if="${sk.hinhAnhThumb == null or sk.hinhAnhThumb.isBlank()}">
-                        <i class="bi bi-music-note-beamed"></i>
-                        <span th:text="${sk.maSK}">SK001</span>
+                    <img th:if="${sk.hinhAnhThumb != null and !sk.hinhAnhThumb.isBlank()}"
+                         th:src="${sk.hinhAnhThumb}"
+                         th:alt="${sk.tenSK}"
+                         onerror="this.hidden=true;">
+                    <div class="event-fallback">
+                        <i class="bi bi-calendar-event"></i>
+                        <span th:text="${sk.tenSK}">Sự kiện</span>
                     </div>
                 </a>
                 <div class="event-body">
@@ -190,27 +193,69 @@
         </div>
     </section>
 
-    <section id="how-it-works" class="landing-section">
+    <section id="how-it-works" class="landing-section process-section">
         <div class="section-heading">
-            <span class="eyebrow">Đặt vé chỉ với 4 bước</span>
+            <span class="eyebrow">Quy trình 5 bước</span>
             <h2>Từ lúc chọn vé đến lúc vào cổng đều rõ ràng</h2>
+            <p>Luồng mua vé khớp với hệ thống thật: hàng đợi khi đông, giữ chỗ 10 phút, thanh toán có retry, vé QR và soát vé theo đúng sự kiện.</p>
         </div>
-        <div class="steps-showcase">
-            <div class="timeline-grid four-step-grid">
-                <div class="step-card process-card ui-hover-card"><strong class="step-number">1</strong><span>Chọn sự kiện</span></div>
-                <div class="step-card process-card ui-hover-card"><strong class="step-number">2</strong><span>Chọn vé/ghế/khu đứng</span></div>
-                <div class="step-card process-card ui-hover-card"><strong class="step-number">3</strong><span>Thanh toán</span></div>
-                <div class="step-card process-card ui-hover-card"><strong class="step-number">4</strong><span>Nhận QR check-in</span></div>
+        <div class="process-showcase">
+            <div class="process-timeline">
+                <article class="process-step-card ui-hover-card">
+                    <strong>1</strong>
+                    <div>
+                        <h3>Chọn sự kiện</h3>
+                        <p>Xem trạng thái mở bán, thời gian, địa điểm và thông tin khu vé.</p>
+                    </div>
+                </article>
+                <article class="process-step-card ui-hover-card">
+                    <strong>2</strong>
+                    <div>
+                        <h3>Chọn vé/ghế/khu đứng</h3>
+                        <p>Vào hàng đợi khi cần, chọn ghế ngồi hoặc số lượng vé theo khu đứng.</p>
+                    </div>
+                </article>
+                <article class="process-step-card ui-hover-card">
+                    <strong>3</strong>
+                    <div>
+                        <h3>Giữ chỗ 10 phút và thanh toán</h3>
+                        <p>Đơn hàng giữ vé có thời hạn rõ ràng và hỗ trợ thử lại khi thanh toán lỗi.</p>
+                    </div>
+                </article>
+                <article class="process-step-card ui-hover-card">
+                    <strong>4</strong>
+                    <div>
+                        <h3>Nhận vé QR trong “Vé của tôi”</h3>
+                        <p>Mỗi vé có mã QR riêng để mở chi tiết và xuất trình tại cổng.</p>
+                    </div>
+                </article>
+                <article class="process-step-card ui-hover-card">
+                    <strong>5</strong>
+                    <div>
+                        <h3>Nhân viên chọn đúng sự kiện và soát vé tại cổng</h3>
+                        <p>QR được kiểm tra online hoặc lưu offline rồi đồng bộ lại khi có mạng.</p>
+                    </div>
+                </article>
             </div>
-            <div class="ticket-mockup-card ui-hover-card">
-                <span>Dề Dê QR</span>
-                <div class="qr-mock">
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
-                    <span></span><span></span><span></span><span></span>
+            <div class="qr-ticket-preview ui-hover-card" aria-label="Minh họa vé QR hoàn chỉnh">
+                <div class="ticket-stub">
+                    <span>Dề Dê Tickets</span>
+                    <strong>Indie Night 2026</strong>
+                    <small>VIP • A08 • Cổng chính</small>
                 </div>
-                <strong>Ready to check-in</strong>
+                <div class="qr-panel">
+                    <div class="qr-grid" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <strong>Vé QR đã sẵn sàng</strong>
+                    <small>Mã vé: VE20260018</small>
+                </div>
             </div>
         </div>
     </section>
