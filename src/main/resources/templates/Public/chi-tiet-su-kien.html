@@ -29,6 +29,8 @@
             .detail-meta i { width: 34px; height: 34px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.1); color: #93c5fd; }
             .detail-meta strong { display: block; color: #fff; }
             .detail-meta span { color: #cbd5e1; }
+            .map-link { width: fit-content; display: inline-flex; align-items: center; margin-top: 8px; color: #bfdbfe; font-weight: 800; text-decoration: none; }
+            .map-link:hover { color: #ffffff; text-decoration: underline; }
             .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: auto; }
             .btn-book-primary, .btn-book-disabled {
                 min-height: 52px; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
@@ -88,6 +90,11 @@
                         <strong th:text="${diaDiem != null ? diaDiem.tenDiaDiem : 'Đang cập nhật địa điểm'}">Tên địa điểm</strong>
                         <span th:if="${diaDiem != null and diaDiem.diaChi != null and !diaDiem.diaChi.isBlank()}"
                               th:text="${diaDiem.diaChi + (diaDiem.thanhPho != null and !diaDiem.thanhPho.isBlank() ? ', ' + diaDiem.thanhPho : '')}">Địa chỉ</span>
+                        <a th:if="${diaDiem != null and diaDiem.linkGoogleMap != null and !diaDiem.linkGoogleMap.isBlank()}"
+                           th:href="${diaDiem.linkGoogleMap}"
+                           target="_blank"
+                           rel="noopener"
+                           class="map-link">Xem bản đồ</a>
                     </div>
                 </div>
                 <div class="detail-meta">

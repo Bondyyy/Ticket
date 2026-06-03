@@ -460,7 +460,7 @@
                                 </td>
                             </tr>
                             <tr th:each="log : ${hanhViList}">
-                                <td class="text-muted" th:text="${log.thoiGian != null ? #dates.format(log.thoiGian, 'dd/MM/yyyy HH:mm:ss') : '-'}">--/--/---- --:--:--</td>
+                                <td class="text-muted" th:text="${log.thoiGian != null ? #dates.format(log.thoiGian, 'dd/MM/yyyy HH:mm') : '-'}">--/--/---- --:--</td>
                                 <td class="fw-medium text-dark">
                                     <i class="bi bi-person-circle me-1 text-secondary"></i>
                                     <span th:text="${log.tenKH != null ? log.tenKH : 'Khách vãng lai'}">Khách vãng lai</span>

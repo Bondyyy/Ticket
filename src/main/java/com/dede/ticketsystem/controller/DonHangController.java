@@ -5,6 +5,7 @@ import com.dede.ticketsystem.model.KhachHang;
 import com.dede.ticketsystem.repository.KhachHangRepository;
 import com.dede.ticketsystem.service.DonHangService;
 import com.dede.ticketsystem.service.SessionService;
+import com.dede.ticketsystem.util.DateTimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -65,6 +66,7 @@ public class DonHangController {
 
         model.addAttribute("donHangList", list);
         model.addAttribute("mapKhachHang", mapKhachHang);
+        model.addAttribute("orderStats", donHangService.thongKeTongQuan());
         model.addAttribute("keyword", keyword);
         model.addAttribute("trangThaiFilter", trangThai);
         return "QLDH/QLDH";
@@ -82,8 +84,8 @@ public class DonHangController {
                     data.put("tongTien", dh.getTongTien());
                     data.put("thanhTien", dh.getThanhTien());
                     data.put("trangThaiDonHang", dh.getTrangThaiDonHang());
-                    data.put("thoiGianDat", dh.getThoiGianDat() != null ? dh.getThoiGianDat().toString() : null);
-                    data.put("thoiGianHetHan", dh.getThoiGianHetHan() != null ? dh.getThoiGianHetHan().toString() : null);
+                    data.put("thoiGianDat", DateTimeUtils.formatDisplayMinute(dh.getThoiGianDat()));
+                    data.put("thoiGianHetHan", DateTimeUtils.formatDisplayMinute(dh.getThoiGianHetHan()));
                     data.put("maKH", dh.getMaKH());
                     data.put("maNV", dh.getMaNV());
                     data.put("maPGG", dh.getMaPGG());

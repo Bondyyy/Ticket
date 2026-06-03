@@ -8,10 +8,12 @@ import com.dede.ticketsystem.repository.DonHangRepository;
 import com.dede.ticketsystem.repository.VeRepository;
 import com.dede.ticketsystem.repository.GheRepository;
 import com.dede.ticketsystem.repository.KhuVucRepository;
+import com.dede.ticketsystem.util.OrderStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -44,11 +46,44 @@ public class DonHangService {
         return donHangRepository.findById(maDonHang);
     }
 
+    public Map<String, Long> thongKeTongQuan() {
+        List<DonHang> orders = donHangRepository.findAll();
+        long paid = 0;
+        long pending = 0;
+        long canceled = 0;
+        for (DonHang dh : orders) {
+            String status = OrderStatus.normalize(dh.getTrangThaiDonHang());
+            if (OrderStatus.DA_THANH_TOAN.equals(status)) {
+                paid++;
+            } else if (OrderStatus.CHO_THANH_TOAN.equals(status)) {
+                pending++;
+            } else if (OrderStatus.DA_HUY.equals(status)) {
+                canceled++;
+            }
+        }
+        return Map.of(
+                "tongDon", (long) orders.size(),
+                "daThanhToan", paid,
+                "choThanhToan", pending,
+                "daHuy", canceled
+        );
+    }
+
+    @org.springframework.transaction.annotation.Transactional
     public void huyDonHang(String maDonHang) {
         donHangRepository.findById(maDonHang).ifPresent(dh -> {
-            dh.setTrangThaiDonHang("Đã hủy");
+            dh.setTrangThaiDonHang(OrderStatus.DA_HUY);
             dh.setCapNhatLanCuoi(new java.sql.Timestamp(System.currentTimeMillis()));
             donHangRepository.save(dh);
+            List<Ghe> gheDangGiu = gheRepository.findByMaPhienKhoa(maDonHang);
+            for (Ghe ghe : gheDangGiu) {
+                if ("Đang chọn".equals(ghe.getTrangThaiGhe())) {
+                    ghe.setTrangThaiGhe("Trống");
+                    ghe.setThoiGianKhoaTam(null);
+                    ghe.setMaPhienKhoa(null);
+                }
+            }
+            gheRepository.saveAll(gheDangGiu);
         });
     }
 
@@ -64,7 +99,7 @@ public class DonHangService {
         String maDon = idGeneratorService.nextDonHangId();
         dh.setMaDonHang(maDon);
         dh.setSoDonHang(maDon);
-        dh.setTrangThaiDonHang("Chờ thanh toán");
+        dh.setTrangThaiDonHang(OrderStatus.CHO_THANH_TOAN);
         dh.setThoiGianDat(new java.sql.Timestamp(System.currentTimeMillis()));
         dh.setMaKH(maKH);
         dh.setMaNV(maNV);

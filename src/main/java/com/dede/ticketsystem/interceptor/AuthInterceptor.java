@@ -90,10 +90,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (roles == null || (!roles.contains("ADMIN") && !roles.contains("STAFF") && !roles.contains("ORGANIZER"))) {
                 if (isApiOrAjax) {
-                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập", null);
+                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", null);
                     return false;
                 }
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ Admin, Staff hoặc Organizer mới có quyền giả lập dùng vé.");
+                redirectForbidden(response, contextPath);
                 return false;
             }
         }
@@ -109,10 +109,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (roles == null || (!roles.contains("ADMIN") && !roles.contains("STAFF") && !roles.contains("ORGANIZER"))) {
                 if (isApiOrAjax) {
-                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập", null);
+                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", null);
                     return false;
                 }
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập quản lý vé.");
+                redirectForbidden(response, contextPath);
                 return false;
             }
         }
@@ -132,10 +132,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (roles == null || !roles.contains("CUSTOMER")) {
                 if (isApiOrAjax) {
-                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập", null);
+                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", null);
                     return false;
                 }
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập chức năng này.");
+                redirectForbidden(response, contextPath);
                 return false;
             }
         }
@@ -151,10 +151,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (roles == null || !roles.contains("ADMIN")) {
                 if (isApiOrAjax) {
-                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập", null);
+                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", null);
                     return false;
                 }
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ Admin mới có quyền vào khu vực này.");
+                redirectForbidden(response, contextPath);
                 return false;
             }
         }
@@ -171,10 +171,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (roles == null || (!roles.contains("ADMIN") && !roles.contains("ORGANIZER"))) {
                 if (isApiOrAjax) {
-                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập", null);
+                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", null);
                     return false;
                 }
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ Admin hoặc Organizer mới có quyền vào khu vực này.");
+                redirectForbidden(response, contextPath);
                 return false;
             }
         }
@@ -191,10 +191,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             if (roles == null || (!roles.contains("STAFF") && !roles.contains("ADMIN"))) {
                 if (isApiOrAjax) {
-                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền truy cập", null);
+                    sendJsonError(response, HttpServletResponse.SC_FORBIDDEN, "Bạn không có quyền thực hiện thao tác này.", null);
                     return false;
                 }
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Chỉ Staff hoặc Admin mới có quyền vào khu vực này.");
+                redirectForbidden(response, contextPath);
                 return false;
             }
         }
@@ -253,5 +253,9 @@ public class AuthInterceptor implements HandlerInterceptor {
             json = String.format("{\"success\": false, \"message\": \"%s\"}", message);
         }
         response.getWriter().write(json);
+    }
+
+    private void redirectForbidden(HttpServletResponse response, String contextPath) throws Exception {
+        response.sendRedirect(contextPath + "/?error=forbidden");
     }
 }

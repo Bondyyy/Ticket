@@ -2,11 +2,13 @@ package com.dede.ticketsystem.controller;
 
 import com.dede.ticketsystem.service.BookingService;
 import com.dede.ticketsystem.service.SessionService;
+import com.dede.ticketsystem.model.ZoneTicketRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -115,13 +117,16 @@ public class BookingController {
             String maSK = (String) payload.get("maSK");
             String maKhuVuc = (String) payload.get("maKhuVuc");
             String queueToken = (String) payload.get("queueToken");
-            int soLuong = parsePositiveInt(payload.get("soLuong"));
+            List<ZoneTicketRequest> tickets = parseZoneTicketRequests(payload);
 
             if (maSK == null || maSK.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Mã sự kiện không được trống!"));
             }
-            if (maKhuVuc == null || maKhuVuc.trim().isEmpty()) {
+            if (tickets.isEmpty() && (maKhuVuc == null || maKhuVuc.trim().isEmpty())) {
                 return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Mã khu vực không được trống!"));
+            }
+            if (tickets.isEmpty()) {
+                tickets.add(new ZoneTicketRequest(maKhuVuc, parsePositiveInt(payload.get("soLuong"))));
             }
 
             if (queueService.shouldQueue(maSK)) {
@@ -131,7 +136,7 @@ public class BookingController {
                 }
             }
 
-            String orderId = bookingService.lockZoneTickets(maSK, maKhuVuc, soLuong, maKH, queueToken);
+            String orderId = bookingService.createZoneOrder(maSK, maKH, tickets, queueToken);
 
             if (queueService.shouldQueue(maSK) && queueToken != null) {
                 queueService.consumeToken(queueToken, maKH, maSK);
@@ -224,12 +229,43 @@ public class BookingController {
     }
 
     private int parsePositiveInt(Object value) {
+        int parsed;
         if (value instanceof Number number) {
-            return number.intValue();
+            parsed = number.intValue();
+        } else if (value instanceof String text && !text.isBlank()) {
+            parsed = Integer.parseInt(text.trim());
+        } else {
+            throw new IllegalArgumentException("Số lượng vé phải lớn hơn 0!");
         }
-        if (value instanceof String text && !text.isBlank()) {
-            return Integer.parseInt(text.trim());
+        if (parsed <= 0) {
+            throw new IllegalArgumentException("Số lượng vé phải lớn hơn 0!");
         }
-        throw new IllegalArgumentException("Số lượng vé phải lớn hơn 0!");
+        return parsed;
+    }
+
+    private List<ZoneTicketRequest> parseZoneTicketRequests(Map<String, Object> payload) {
+        List<ZoneTicketRequest> result = new ArrayList<>();
+        Object rawTickets = payload.get("tickets");
+        if (!(rawTickets instanceof List<?> list)) {
+            return result;
+        }
+        for (Object item : list) {
+            if (!(item instanceof Map<?, ?> ticketMap)) {
+                continue;
+            }
+            Object maKhuVucObj = ticketMap.get("maKhuVuc");
+            if (!(maKhuVucObj instanceof String maKhuVuc) || maKhuVuc.isBlank()) {
+                continue;
+            }
+            Object soLuongObj = ticketMap.get("soLuong");
+            int soLuong = 0;
+            if (soLuongObj instanceof Number number) {
+                soLuong = number.intValue();
+            } else if (soLuongObj instanceof String text && !text.isBlank()) {
+                soLuong = Integer.parseInt(text.trim());
+            }
+            result.add(new ZoneTicketRequest(maKhuVuc.trim(), soLuong));
+        }
+        return result;
     }
 }

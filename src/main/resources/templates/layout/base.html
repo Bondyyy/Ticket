@@ -15,6 +15,16 @@
     <!-- Google Fonts: Be Vietnam Pro -->
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- CSS toàn cục -->
+    <script>
+        (function () {
+            const savedMode = localStorage.getItem('dede_theme_mode') || 'system';
+            const savedBrightness = localStorage.getItem('dede_ui_brightness') || '100';
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const resolvedTheme = savedMode === 'system' ? (prefersDark ? 'dark' : 'light') : savedMode;
+            document.documentElement.setAttribute('data-theme', resolvedTheme);
+            document.documentElement.style.setProperty('--ui-brightness', String(Math.max(80, Math.min(120, Number(savedBrightness) || 100)) / 100));
+        })();
+    </script>
     <link th:href="@{/css/main.css}" rel="stylesheet">
 
     <!-- CSS riêng từng trang (nếu có) -->
@@ -105,6 +115,24 @@
                     </th:block>
                 </ul>
                 <ul class="navbar-nav ms-auto align-items-center gap-2">
+                    <li class="nav-item dropdown dd-theme-menu">
+                        <button id="themeModeButton" class="theme-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Giao diện">
+                            <i class="bi bi-circle-half"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end theme-menu-panel">
+                            <label for="themeModeSelect">Giao diện</label>
+                            <select id="themeModeSelect" class="form-select form-select-sm">
+                                <option value="system">Theo hệ thống</option>
+                                <option value="light">Sáng</option>
+                                <option value="dark">Tối</option>
+                            </select>
+                            <label for="uiBrightnessRange">Độ sáng giao diện</label>
+                            <div class="brightness-row">
+                                <input id="uiBrightnessRange" type="range" min="80" max="120" value="100">
+                                <span id="uiBrightnessValue">100%</span>
+                            </div>
+                        </div>
+                    </li>
                     <!-- Chưa đăng nhập -->
                     <li class="nav-item d-flex gap-2" th:if="${session.nguoiDung == null}">
                         <a class="btn nav-auth-btn nav-login-btn btn-login" th:href="@{/dang-nhap}">Đăng nhập</a>
@@ -179,6 +207,54 @@
                 if ((target === '/' && currentPath === '/') ||
                     (target !== '/' && !target.includes('#') && (currentPath === target || currentPath.startsWith(target + '/')))) {
                     link.classList.add('active');
+                }
+            });
+
+            const modeSelect = document.getElementById('themeModeSelect');
+            const brightnessRange = document.getElementById('uiBrightnessRange');
+            const brightnessValue = document.getElementById('uiBrightnessValue');
+            const themeButton = document.getElementById('themeModeButton');
+            const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+            function clampBrightness(value) {
+                return Math.max(80, Math.min(120, Number(value) || 100));
+            }
+
+            function resolveTheme(mode) {
+                return mode === 'system' ? (media && media.matches ? 'dark' : 'light') : mode;
+            }
+
+            function applyTheme(mode, brightness, persist) {
+                const cleanMode = ['light', 'dark', 'system'].includes(mode) ? mode : 'system';
+                const cleanBrightness = clampBrightness(brightness);
+                document.documentElement.setAttribute('data-theme', resolveTheme(cleanMode));
+                document.documentElement.style.setProperty('--ui-brightness', String(cleanBrightness / 100));
+                if (modeSelect) modeSelect.value = cleanMode;
+                if (brightnessRange) brightnessRange.value = cleanBrightness;
+                if (brightnessValue) brightnessValue.textContent = cleanBrightness + '%';
+                if (themeButton) {
+                    const icon = themeButton.querySelector('i');
+                    if (icon) icon.className = cleanMode === 'dark' ? 'bi bi-moon-stars' : cleanMode === 'light' ? 'bi bi-sun' : 'bi bi-circle-half';
+                }
+                if (persist) {
+                    localStorage.setItem('dede_theme_mode', cleanMode);
+                    localStorage.setItem('dede_ui_brightness', String(cleanBrightness));
+                    fetch('/api/user-preferences/theme', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({ themeMode: cleanMode, brightness: cleanBrightness })
+                    }).catch(() => {});
+                }
+            }
+
+            const initialMode = localStorage.getItem('dede_theme_mode') || 'system';
+            const initialBrightness = localStorage.getItem('dede_ui_brightness') || '100';
+            applyTheme(initialMode, initialBrightness, false);
+            modeSelect?.addEventListener('change', () => applyTheme(modeSelect.value, brightnessRange?.value || 100, true));
+            brightnessRange?.addEventListener('input', () => applyTheme(modeSelect?.value || 'system', brightnessRange.value, true));
+            media?.addEventListener?.('change', () => {
+                if ((localStorage.getItem('dede_theme_mode') || 'system') === 'system') {
+                    applyTheme('system', localStorage.getItem('dede_ui_brightness') || '100', false);
                 }
             });
         });

@@ -56,10 +56,11 @@
                         <div class="scan-field">
                             <label for="maSK">Sự kiện</label>
                             <select id="maSK" name="maSK" class="scan-control">
+                                <option value="" selected>-- Chọn sự kiện cần soát vé --</option>
                                 <option th:each="sk : ${suKienList}"
                                         th:value="${sk.maSK}"
-                                        th:text="${sk.maSK + ' - ' + sk.tenSK}">
-                                    SK001 - Sự kiện demo
+                                        th:text="${sk.tenSK}">
+                                    Sự kiện demo
                                 </option>
                                 <option th:if="${suKienList == null or suKienList.isEmpty()}" value="">
                                     Không tìm thấy sự kiện nào
@@ -141,6 +142,10 @@
                 </div>
 
                 <div id="cameraAlert" class="scan-alert scan-alert-danger camera-alert" hidden></div>
+                <div id="eventRequiredNotice" class="scan-alert scan-alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Vui lòng chọn sự kiện trước khi soát vé.
+                </div>
 
                 <div id="qrReaderShell" class="qr-reader-shell">
                     <div id="qrPlaceholder" class="qr-placeholder">
@@ -152,7 +157,7 @@
                 </div>
 
                 <div class="scan-tools">
-                    <input type="file" id="qrImageInput" accept="image/*" hidden>
+                    <input type="file" id="qrImageInput" accept="image/*" hidden disabled>
                     <label for="qrImageInput" class="scan-btn scan-btn-outline scan-upload-label">
                         <i class="bi bi-image"></i>
                         Chọn ảnh QR
@@ -168,11 +173,11 @@
                                type="text"
                                autocomplete="off"
                                placeholder="TICKET|maVe=...|maSK=...|maQR=... hoặc MaVe/MaQR"
-                               th:disabled="${maNV == null or suKienList == null or suKienList.isEmpty()}">
+                               disabled>
                         <button id="btnManualSubmit"
                                 type="submit"
                                 class="scan-btn scan-btn-primary"
-                                th:disabled="${maNV == null or suKienList == null or suKienList.isEmpty()}">
+                                disabled>
                             <i class="bi bi-check-circle"></i>
                             Kiểm Tra
                         </button>
@@ -232,10 +237,11 @@
         let lastDecodedAt = 0;
         let validationInFlight = false;
         let isSystemOnline = navigator.onLine;
+        const scanServerAvailable = /*[[${maNV != null and suKienList != null and !suKienList.isEmpty()}]]*/ true;
 
         document.addEventListener('DOMContentLoaded', () => {
             const manualSubmit = document.getElementById('btnManualSubmit');
-            if (manualSubmit?.disabled) {
+            if (!scanServerAvailable && manualSubmit) {
                 manualSubmit.setAttribute('data-server-disabled', 'true');
             }
 
@@ -253,6 +259,7 @@
                     onQrDecoded(value, 'manual');
                 }
             });
+            document.getElementById('maSK')?.addEventListener('change', updateScanControlsState);
 
             window.addEventListener('online', () => {
                 isSystemOnline = true;
@@ -265,6 +272,7 @@
             });
 
             updateConnectionStatus();
+            updateScanControlsState();
             updateOfflineSyncButton();
             loadScanHistoryFromServer();
             if (isSystemOnline) {
@@ -273,6 +281,10 @@
         });
 
         async function startCameraScanner() {
+            if (!hasSelectedEvent()) {
+                displayClientError('CHƯA CHỌN SỰ KIỆN', 'Vui lòng chọn sự kiện trước khi soát vé.');
+                return;
+            }
             if (cameraRunning) return;
             clearCameraError();
 
@@ -412,6 +424,10 @@
         }
 
         async function scanQrFromImage(file) {
+            if (!hasSelectedEvent()) {
+                displayClientError('CHƯA CHỌN SỰ KIỆN', 'Vui lòng chọn sự kiện trước khi soát vé.');
+                return;
+            }
             if (!file) return;
             document.getElementById('imageFileName').textContent = file.name;
             clearCameraError();
@@ -522,7 +538,7 @@
             validationInFlight = isLoading;
             const btn = document.getElementById('btnManualSubmit');
             if (!btn) return;
-            btn.disabled = isLoading || btn.hasAttribute('data-server-disabled');
+            btn.disabled = isLoading || btn.hasAttribute('data-server-disabled') || !hasSelectedEvent();
             btn.innerHTML = isLoading
                 ? '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Đang kiểm tra'
                 : '<i class="bi bi-check-circle"></i> Kiểm Tra';
@@ -597,6 +613,10 @@
         }
 
         function saveScanOffline(qrCode, maSK, congSoat) {
+            if (!maSK) {
+                displayClientError('CHƯA CHỌN SỰ KIỆN', 'Vui lòng chọn sự kiện trước khi soát vé.');
+                return;
+            }
             const timestamp = Date.now();
             const pending = getPendingScans();
             pending.push({
@@ -730,6 +750,27 @@
             banner.hidden = isSystemOnline;
         }
 
+        function hasSelectedEvent() {
+            return Boolean(document.getElementById('maSK')?.value?.trim());
+        }
+
+        async function updateScanControlsState() {
+            const enabled = hasSelectedEvent();
+            const serverDisabled = document.getElementById('btnManualSubmit')?.hasAttribute('data-server-disabled');
+            document.getElementById('btnStartCamera').disabled = !enabled;
+            document.getElementById('qrImageInput').disabled = !enabled;
+            document.querySelector('.scan-upload-label')?.classList.toggle('is-disabled', !enabled);
+            document.getElementById('manualQrInput').disabled = !enabled || serverDisabled;
+            document.getElementById('btnManualSubmit').disabled = !enabled || serverDisabled;
+            document.getElementById('eventRequiredNotice').hidden = enabled;
+            if (!enabled && cameraRunning) {
+                await stopCameraScanner();
+            }
+            if (!enabled) {
+                displayClientError('CHƯA CHỌN SỰ KIỆN', 'Vui lòng chọn sự kiện trước khi soát vé.');
+            }
+        }
+
         function getPendingScans() {
             try {
                 return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
@@ -766,7 +807,7 @@
             if (!value) return '-';
             const date = new Date(value);
             if (Number.isNaN(date.getTime())) return '-';
-            return date.toLocaleString('vi-VN');
+            return date.toLocaleDateString('vi-VN') + ' ' + date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         }
 
         function escapeHtml(value) {

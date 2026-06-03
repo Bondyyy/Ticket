@@ -318,6 +318,10 @@
                             <input type="number" id="v_sucChuaToiDa" min="1" class="form-control" required>
                         </div>
                         <div class="form-group span-2">
+                            <label for="v_linkGoogleMap">Link Google Map</label>
+                            <input type="url" id="v_linkGoogleMap" class="form-control" placeholder="https://maps.google.com/... hoặc https://maps.app.goo.gl/...">
+                        </div>
+                        <div class="form-group span-2">
                             <label for="v_moTa">Mô tả</label>
                             <textarea id="v_moTa" rows="3" class="form-control"></textarea>
                         </div>
@@ -817,6 +821,7 @@
                 diaChi: document.getElementById('v_diaChi').value,
                 thanhPho: document.getElementById('v_thanhPho').value,
                 sucChuaToiDa: Number(document.getElementById('v_sucChuaToiDa').value || 0),
+                linkGoogleMap: document.getElementById('v_linkGoogleMap').value,
                 moTa: document.getElementById('v_moTa').value,
                 trangThai: document.getElementById('v_trangThai').value
             };

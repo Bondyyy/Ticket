@@ -6,6 +6,7 @@ import com.dede.ticketsystem.model.HanhViKhachHangDTO;
 import com.dede.ticketsystem.model.SuKien;
 import com.dede.ticketsystem.repository.SuKienRepository;
 import com.dede.ticketsystem.service.BaoCaoService;
+import com.dede.ticketsystem.util.OrderStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,10 +26,10 @@ import java.util.stream.Collectors;
 public class BaoCaoController {
 
     private static final Set<String> TRANG_THAI_DON_HANG_HOP_LE = Set.of(
-            "Chờ thanh toán",
-            "Đã thanh toán",
-            "Đã hủy",
-            "Hoàn tiền"
+            OrderStatus.CHO_THANH_TOAN,
+            OrderStatus.DA_THANH_TOAN,
+            OrderStatus.DA_HUY,
+            OrderStatus.HOAN_TIEN
     );
 
     private final BaoCaoService baoCaoService;
@@ -65,12 +66,27 @@ public class BaoCaoController {
 
         try {
             suKienList = suKienRepository.findAll();
+        } catch (Exception e) {
+            System.err.println("Lỗi tải danh sách sự kiện cho /baocao: " + e.getMessage());
+            e.printStackTrace();
+        }
+        try {
             tongQuan = baoCaoService.getBaoCaoTongQuan(selectedMaSK, startTimestamp, endTimestamp, selectedTrangThai);
+        } catch (Exception e) {
+            System.err.println("Lỗi tải tổng quan báo cáo /baocao: " + e.getMessage());
+            e.printStackTrace();
+        }
+        try {
             baoCaoSuKienList = baoCaoService.getBaoCaoSuKien(selectedMaSK, startTimestamp, endTimestamp, selectedTrangThai);
+        } catch (Exception e) {
+            System.err.println("Lỗi tải báo cáo sự kiện /baocao: " + e.getMessage());
+            e.printStackTrace();
+        }
+        try {
             hanhViList = baoCaoService.getRecentHanhViKhachHang(selectedMaSK, startTimestamp, endTimestamp);
         } catch (Exception e) {
-            errors.add("Không thể tải dữ liệu báo cáo lúc này. Vui lòng kiểm tra dữ liệu hoặc kết nối CSDL.");
-            System.err.println("Lỗi tải báo cáo /baocao: " + e.getMessage());
+            System.err.println("Lỗi tải hành vi khách hàng /baocao: " + e.getMessage());
+            e.printStackTrace();
         }
 
         model.addAttribute("tongQuan", tongQuan);

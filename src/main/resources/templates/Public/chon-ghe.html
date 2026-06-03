@@ -57,7 +57,17 @@
             <!-- Cột trái: Sơ đồ ghế -->
             <div class="main-col animate__animated animate__fadeIn">
                 <h2 style="margin-top:0; color: #1e3a8a; font-family: 'Be Vietnam Pro', 'Inter', sans-serif;" th:text="${suKien.tenSK}">Tên sự kiện</h2>
-                <p style="color: #64748b; margin-bottom: 30px;"><i class="fa-solid fa-location-dot me-1"></i> <span th:text="${suKien.maDiaDiem}">Địa điểm</span></p>
+                <p style="color: #64748b; margin-bottom: 30px;">
+                    <i class="fa-solid fa-location-dot me-1"></i>
+                    <span th:text="${diaDiem != null ? diaDiem.tenDiaDiem : 'Đang cập nhật địa điểm'}">Địa điểm</span>
+                    <span th:if="${diaDiem != null and diaDiem.diaChi != null and !diaDiem.diaChi.isBlank()}"
+                          th:text="${' - ' + diaDiem.diaChi}"> - Địa chỉ</span>
+                    <a th:if="${diaDiem != null and diaDiem.linkGoogleMap != null and !diaDiem.linkGoogleMap.isBlank()}"
+                       th:href="${diaDiem.linkGoogleMap}"
+                       target="_blank"
+                       rel="noopener"
+                       style="margin-left:8px; color:#2563eb; font-weight:800;">Xem bản đồ</a>
+                </p>
                 
                 <div class="stage-box">SÂN KHẤU</div>
                 
@@ -114,7 +124,7 @@
             (seatMap.areas || []).forEach(area => areaMap[area.maKhuVuc] = area);
             
             let selectedSeats = [];
-            let selectedZone = null;
+            const selectedZones = new Map();
 
             function formatMoney(value) {
                 return new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' ₫';
@@ -194,7 +204,7 @@
             }
 
             function renderStandingZones() {
-                document.getElementById('selectionLabel').textContent = 'Khu đứng đã chọn:';
+                document.getElementById('selectionLabel').textContent = 'Loại vé đã chọn:';
                 const container = document.getElementById('seatMapContainer');
                 const areas = Array.isArray(seatMap.areas) ? seatMap.areas : [];
                 if (areas.length === 0) {
@@ -218,16 +228,19 @@
                     const input = card.querySelector('input');
                     input.disabled = remaining <= 0 || area.trangThai !== 'Đang bán';
                     input.addEventListener('input', () => {
-                        const quantity = Math.max(0, Math.min(Number(input.value || 0), Math.min(remaining, maxPerCustomer)));
-                        document.querySelectorAll('.standing-zone-card input').forEach(other => {
-                            if (other !== input) other.value = 0;
-                        });
+                        const rawQuantity = Number(input.value || 0);
+                        const quantity = Math.max(0, Math.min(rawQuantity, Math.min(remaining, maxPerCustomer)));
                         input.value = quantity;
-                        selectedZone = quantity > 0 ? { area, quantity, price: Number(area.giaVe || 0) } : null;
+                        if (quantity > 0) {
+                            selectedZones.set(area.maKhuVuc, { area, quantity, price: Number(area.giaVe || 0) });
+                        } else {
+                            selectedZones.delete(area.maKhuVuc);
+                        }
                         updateSummary();
                     });
                     grid.appendChild(card);
                 });
+                updateSummary();
             }
             
             function toggleSeat(seatObj, el, price) {
@@ -269,14 +282,24 @@
                 const btn = document.getElementById('btnContinue');
 
                 if ((seatMap.loaiSoDo || 'NGOI_THEO_GHE') === 'DUNG_THEO_KHU') {
-                    if (!selectedZone) {
-                        listEl.innerHTML = '<span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn khu đứng</span>';
+                    const zones = Array.from(selectedZones.values());
+                    if (zones.length === 0) {
+                        listEl.innerHTML = '<span style="color: #94a3b8; font-size: 14px; font-style: italic;">Chưa chọn loại vé nào</span>';
                         totalEl.textContent = '0 ₫';
                         btn.disabled = true;
                         return;
                     }
-                    listEl.innerHTML = `<div class="selected-seat-tag">${selectedZone.area.tenKhuVuc || 'Khu đứng'} x ${selectedZone.quantity}</div>`;
-                    totalEl.textContent = formatMoney(selectedZone.price * selectedZone.quantity);
+                    listEl.innerHTML = '';
+                    let total = 0;
+                    zones.forEach(zone => {
+                        const lineTotal = zone.price * zone.quantity;
+                        total += lineTotal;
+                        const tag = document.createElement('div');
+                        tag.className = 'selected-seat-tag';
+                        tag.textContent = `${zone.area.tenKhuVuc || 'Khu đứng'} x ${zone.quantity} = ${formatMoney(lineTotal)}`;
+                        listEl.appendChild(tag);
+                    });
+                    totalEl.textContent = formatMoney(total);
                     btn.disabled = false;
                     return;
                 }
@@ -311,7 +334,10 @@
             }
 
             function lockZoneTicketsAndCheckout() {
-                if (!selectedZone) return;
+                const tickets = Array.from(selectedZones.values())
+                    .map(zone => ({ maKhuVuc: zone.area.maKhuVuc, soLuong: zone.quantity }))
+                    .filter(ticket => ticket.maKhuVuc && ticket.soLuong > 0);
+                if (tickets.length === 0) return;
 
                 const btn = document.getElementById('btnContinue');
                 btn.disabled = true;
@@ -319,8 +345,7 @@
 
                 const payload = {
                     maSK: maSK,
-                    maKhuVuc: selectedZone.area.maKhuVuc,
-                    soLuong: selectedZone.quantity,
+                    tickets: tickets,
                     queueToken: queueToken
                 };
 

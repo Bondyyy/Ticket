@@ -6,6 +6,19 @@
     --hero-visual-y: 0px;
 }
 
+.forbidden-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 18px;
+    padding: 14px 16px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-weight: 800;
+}
+
 .buyer-landing .landing-hero {
     grid-template-columns: minmax(0, 0.95fr) minmax(380px, 1.05fr);
 }
@@ -184,6 +197,98 @@
 
 .buyer-feature-grid {
     grid-template-columns: repeat(5, 1fr);
+}
+
+.steps-showcase,
+.lifestyle-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+    gap: 24px;
+    align-items: stretch;
+}
+
+.ticket-mockup-card,
+.mobile-mockup {
+    min-height: 100%;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.ticket-mockup-card {
+    display: grid;
+    place-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.ticket-mockup-card > span,
+.ticket-mockup-card > strong {
+    color: var(--text);
+    font-weight: 900;
+}
+
+.lifestyle-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+}
+
+.lifestyle-copy h2 {
+    margin: 0;
+    color: var(--text);
+}
+
+.lifestyle-copy p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.75;
+}
+
+.benefit-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.benefit-list span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    font-weight: 800;
+}
+
+.benefit-list i {
+    color: var(--success);
+}
+
+.mobile-mockup {
+    display: grid;
+    gap: 12px;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface) 86%, var(--primary)), var(--surface));
+}
+
+.mini-event-card {
+    display: grid;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+.mini-event-card strong,
+.mini-event-card b {
+    color: var(--text);
+}
+
+.mini-event-card span {
+    color: var(--muted);
 }
 
 .four-step-grid {
@@ -1098,6 +1203,19 @@
     text-decoration: none;
 }
 
+.event-map-link {
+    width: fit-content;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.event-map-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
 .empty-events {
     border-radius: 28px;
     padding: 48px;
@@ -1277,6 +1395,11 @@
 }
 
 @media (max-width: 820px) {
+    .steps-showcase,
+    .lifestyle-section {
+        grid-template-columns: 1fr;
+    }
+
     .landing-hero {
         padding-top: 18px;
     }

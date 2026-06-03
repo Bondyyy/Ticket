@@ -33,28 +33,28 @@
                     <div class="stat-card ui-hover-card">
                         <div class="stat-icon blue"><i class="fa-solid fa-cart-shopping"></i></div>
                         <div class="stat-info">
-                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-value" id="statTotal" th:text="${orderStats != null ? orderStats['tongDon'] : 0}">0</div>
                             <div class="stat-label">Tổng đơn hàng</div>
                         </div>
                     </div>
                     <div class="stat-card ui-hover-card">
                         <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
                         <div class="stat-info">
-                            <div class="stat-value" id="statPaid">0</div>
+                            <div class="stat-value" id="statPaid" th:text="${orderStats != null ? orderStats['daThanhToan'] : 0}">0</div>
                             <div class="stat-label">Đã thanh toán</div>
                         </div>
                     </div>
                     <div class="stat-card ui-hover-card">
                         <div class="stat-icon yellow"><i class="fa-solid fa-clock"></i></div>
                         <div class="stat-info">
-                            <div class="stat-value" id="statWait">0</div>
+                            <div class="stat-value" id="statWait" th:text="${orderStats != null ? orderStats['choThanhToan'] : 0}">0</div>
                             <div class="stat-label">Chờ thanh toán</div>
                         </div>
                     </div>
                     <div class="stat-card ui-hover-card">
                         <div class="stat-icon red"><i class="fa-solid fa-ban"></i></div>
                         <div class="stat-info">
-                            <div class="stat-value" id="statCancel">0</div>
+                            <div class="stat-value" id="statCancel" th:text="${orderStats != null ? orderStats['daHuy'] : 0}">0</div>
                             <div class="stat-label">Đã hủy</div>
                         </div>
                     </div>
@@ -121,8 +121,8 @@
                                         <span class="money" th:if="${dh.thanhTien != null}" th:text="${#numbers.formatDecimal(dh.thanhTien, 0, 'POINT', 0, 'COMMA') + ' ₫'}">0 ₫</span>
                                         <span th:unless="${dh.thanhTien != null}">-</span>
                                     </td>
-                                    <td th:text="${dh.thoiGianDat != null ? dh.thoiGianDat : '-'}">-</td>
-                                    <td th:text="${dh.thoiGianHetHan != null ? dh.thoiGianHetHan : '-'}">-</td>
+                                    <td th:text="${dh.thoiGianDat != null ? #dates.format(dh.thoiGianDat, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                                    <td th:text="${dh.thoiGianHetHan != null ? #dates.format(dh.thoiGianHetHan, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
                                     <td style="text-align:center;">
                                         <span th:if="${dh.trangThaiDonHang == 'Đã thanh toán'}"
                                             class="badge badge-paid">Đã thanh toán</span>
@@ -232,24 +232,6 @@
     <script th:inline="javascript">
         document.getElementById('currentDate').innerText = new Date().toLocaleDateString('vi-VN');
 
-        // Đếm thống kê từ dữ liệu server render
-        (function countStats() {
-            const rows = document.querySelectorAll('#orderTableBody tr[data-ma]');
-            let total = rows.length, paid = 0, wait = 0, cancel = 0;
-            rows.forEach(row => {
-                const badge = row.querySelector('.badge');
-                if (!badge) return;
-                const txt = badge.textContent.trim();
-                if (txt === 'Đã thanh toán') paid++;
-                else if (txt === 'Chờ thanh toán') wait++;
-                else if (txt === 'Đã hủy') cancel++;
-            });
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statPaid').innerText = paid;
-            document.getElementById('statWait').innerText = wait;
-            document.getElementById('statCancel').innerText = cancel;
-        })();
-
         // Filter client-side (tra cứu nhanh)
         function filterTable() {
             const kw = document.getElementById('searchInput').value.toLowerCase();
@@ -282,8 +264,8 @@
                     document.getElementById('d_maKH').innerText = d.maKH || '-';
                     document.getElementById('d_maNV').innerText = d.maNV || '-';
                     document.getElementById('d_maPGG').innerText = d.maPGG || 'Không có';
-                    document.getElementById('d_thoiGianDat').innerText = d.thoiGianDat ? formatDate(d.thoiGianDat) : '-';
-                    document.getElementById('d_thoiGianHetHan').innerText = d.thoiGianHetHan ? formatDate(d.thoiGianHetHan) : '-';
+                    document.getElementById('d_thoiGianDat').innerText = d.thoiGianDat || '-';
+                    document.getElementById('d_thoiGianHetHan').innerText = d.thoiGianHetHan || '-';
                     document.getElementById('d_trangThai').innerText = d.trangThaiDonHang || '-';
                     document.getElementById('d_tongTienSub').innerText = 'Gốc: ' + formatMoney(d.tongTien);
                     document.getElementById('d_thanhTien').innerText = formatMoney(d.thanhTien);
@@ -322,12 +304,6 @@
         function formatMoney(val) {
             if (val == null) return '-';
             return Number(val).toLocaleString('vi-VN') + ' ₫';
-        }
-
-        function formatDate(str) {
-            if (!str) return '-';
-            const d = new Date(str);
-            return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
         }
 
         function showAlert(msg, type) {

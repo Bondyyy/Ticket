@@ -5,5 +5,6 @@ CREATE TABLE DIADIEM (
     ThanhPho        VARCHAR2(100),
     SucChuaToiDa    NUMBER,
     MoTa            VARCHAR2(1000),
+    LinkGoogleMap   VARCHAR2(1000),
     TrangThai       VARCHAR2(50)
 );

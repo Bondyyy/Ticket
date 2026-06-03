@@ -180,6 +180,7 @@ public class TrangChuController {
         
         model.addAttribute("suKien", sk);
         model.addAttribute("seatMap", seatMap);
+        model.addAttribute("diaDiem", sk.getMaDiaDiem() != null ? diaDiemRepository.findById(sk.getMaDiaDiem()).orElse(null) : null);
         return "Public/chon-ghe";
     }
 

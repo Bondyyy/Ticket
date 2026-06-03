@@ -31,6 +31,9 @@ public class DiaDiem {
     @Column(name = "TrangThai", length = 50)
     private String trangThai;
 
+    @Column(name = "LinkGoogleMap", length = 1000)
+    private String linkGoogleMap;
+
     public String getMaDiaDiem() {
         return maDiaDiem;
     }
@@ -85,5 +88,13 @@ public class DiaDiem {
 
     public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
+    }
+
+    public String getLinkGoogleMap() {
+        return linkGoogleMap;
+    }
+
+    public void setLinkGoogleMap(String linkGoogleMap) {
+        this.linkGoogleMap = linkGoogleMap;
     }
 }

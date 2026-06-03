@@ -2,6 +2,7 @@ package com.dede.ticketsystem.controller;
 
 import com.dede.ticketsystem.model.HangDoiAo;
 import com.dede.ticketsystem.model.SuKien;
+import com.dede.ticketsystem.repository.DiaDiemRepository;
 import com.dede.ticketsystem.service.QueueService;
 import com.dede.ticketsystem.service.SessionService;
 import com.dede.ticketsystem.service.SuKienService;
@@ -26,6 +27,9 @@ public class QueueController {
 
     @Autowired
     private SuKienService suKienService;
+
+    @Autowired
+    private DiaDiemRepository diaDiemRepository;
 
     @GetMapping("/hang-doi/{maSK}")
     public String viewQueuePage(@PathVariable String maSK, Model model) {
@@ -64,6 +68,7 @@ public class QueueController {
         }
 
         model.addAttribute("suKien", sk);
+        model.addAttribute("diaDiem", sk.getMaDiaDiem() != null ? diaDiemRepository.findById(sk.getMaDiaDiem()).orElse(null) : null);
         model.addAttribute("queueRecord", h);
         model.addAttribute("currentPosition", currentPos);
         return "Public/hang-doi";

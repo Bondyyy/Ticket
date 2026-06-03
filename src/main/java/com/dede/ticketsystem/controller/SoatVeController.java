@@ -45,7 +45,7 @@ public class SoatVeController {
             return "redirect:/dang-nhap";
         }
         if (!sessionService.hasAnyRole("STAFF", "ADMIN")) {
-            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN, "Yêu cầu quyền STAFF hoặc ADMIN.");
+            return "redirect:/?error=forbidden";
         }
         
         // Lấy thông tin mã nhân viên. SessionService chỉ đọc NHANVIEN theo MaND.
@@ -79,6 +79,11 @@ public class SoatVeController {
             errorResp.put("success", false);
             errorResp.put("message", "Yêu cầu tài khoản nhân viên (STAFF/ADMIN) để thực hiện soát vé.");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResp);
+        }
+
+        if (maSK == null || maSK.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "Vui lòng chọn sự kiện trước khi soát vé."));
         }
 
         try {
@@ -120,6 +125,13 @@ public class SoatVeController {
 
         for (OfflineScanDTO scan : pendingScans) {
             try {
+                if (scan == null || scan.getMaSK() == null || scan.getMaSK().isBlank()) {
+                    ValidationResult failed = new ValidationResult(false, "Chưa chọn sự kiện", null, null, null, null, 0);
+                    failed.setMessage("Vui lòng chọn sự kiện trước khi soát vé.");
+                    failed.setNguonDuLieu("Offline");
+                    results.add(failed);
+                    continue;
+                }
                 Timestamp thoiGianQuet = null;
                 if (scan.getThoiGianQuet() != null) {
                     thoiGianQuet = parseScanTimestamp(scan.getThoiGianQuet());

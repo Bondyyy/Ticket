@@ -20,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.URI;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -126,6 +127,10 @@ public class SuKienController {
             if (payload.getSucChuaToiDa() == null || payload.getSucChuaToiDa() <= 0) {
                 throw new RuntimeException("Sức chứa tối đa phải lớn hơn 0.");
             }
+            String linkGoogleMap = normalizeOptional(payload.getLinkGoogleMap());
+            if (linkGoogleMap != null && !isHttpUrl(linkGoogleMap)) {
+                throw new RuntimeException("Link Google Map phải bắt đầu bằng http:// hoặc https://.");
+            }
 
             DiaDiem diaDiem = new DiaDiem();
             diaDiem.setMaDiaDiem(idGeneratorService.nextDiaDiemId());
@@ -134,6 +139,7 @@ public class SuKienController {
             diaDiem.setThanhPho(payload.getThanhPho() != null ? payload.getThanhPho().trim() : null);
             diaDiem.setSucChuaToiDa(payload.getSucChuaToiDa());
             diaDiem.setMoTa(payload.getMoTa());
+            diaDiem.setLinkGoogleMap(linkGoogleMap);
             String trangThai = payload.getTrangThai() == null || payload.getTrangThai().isBlank()
                     ? "Đang hoạt động"
                     : payload.getTrangThai().trim();
@@ -141,6 +147,25 @@ public class SuKienController {
             return ResponseEntity.ok(diaDiemRepository.save(diaDiem));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    private String normalizeOptional(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private boolean isHttpUrl(String value) {
+        try {
+            URI uri = URI.create(value);
+            String scheme = uri.getScheme();
+            return ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+                    && uri.getHost() != null
+                    && !uri.getHost().isBlank();
+        } catch (Exception e) {
+            return false;
         }
     }
 

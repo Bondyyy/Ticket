@@ -7,6 +7,7 @@ import com.dede.ticketsystem.model.Ve;
 import com.dede.ticketsystem.model.KhuVuc;
 import com.dede.ticketsystem.model.SuKien;
 import com.dede.ticketsystem.model.GiaoDichThanhToan;
+import com.dede.ticketsystem.model.ZoneTicketRequest;
 import com.dede.ticketsystem.repository.GheRepository;
 import com.dede.ticketsystem.repository.DonHangRepository;
 import com.dede.ticketsystem.repository.VeRepository;
@@ -20,7 +21,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class BookingService {
@@ -178,14 +184,17 @@ public class BookingService {
 
     @Transactional
     public String lockZoneTickets(String maSK, String maKhuVuc, int soLuong, String maKH, String queueToken) {
+        return createZoneOrder(maSK, maKH, List.of(new ZoneTicketRequest(maKhuVuc, soLuong)), queueToken);
+    }
+
+    @Transactional
+    public String createZoneOrder(String maSK, String maKH, List<ZoneTicketRequest> requests, String queueToken) {
         if (maSK == null || maSK.isBlank()) {
             throw new RuntimeException("Mã sự kiện không được trống!");
         }
-        if (maKhuVuc == null || maKhuVuc.isBlank()) {
-            throw new RuntimeException("Mã khu vực không được trống!");
-        }
-        if (soLuong <= 0) {
-            throw new RuntimeException("Số lượng vé phải lớn hơn 0!");
+        Map<String, Integer> quantitiesByZone = normalizeZoneRequests(requests);
+        if (quantitiesByZone.isEmpty()) {
+            throw new RuntimeException("Vui lòng chọn ít nhất một loại vé.");
         }
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -204,45 +213,63 @@ public class BookingService {
             throw new RuntimeException("Thời gian bán vé sự kiện đã kết thúc!");
         }
 
-        KhuVuc kv = khuVucRepository.findByIdWithLock(maKhuVuc)
-                .orElseThrow(() -> new RuntimeException("Khu vực không tồn tại!"));
-        if (!maSK.equals(kv.getMaSK())) {
-            throw new RuntimeException("Khu vực không thuộc sự kiện đang chọn!");
-        }
-        if (!"Đang bán".equalsIgnoreCase(kv.getTrangThai())) {
-            throw new RuntimeException("Khu vực này hiện không mở bán!");
-        }
-
-        int capacity = kv.getSoGheToiDa() != null ? kv.getSoGheToiDa() : 0;
-        int sold = kv.getSoGheDaBan() != null ? kv.getSoGheDaBan() : 0;
-        int remaining = capacity - sold;
-        if (soLuong > remaining) {
-            throw new RuntimeException("Khu vực chỉ còn " + Math.max(0, remaining) + " vé.");
-        }
-
-        int maxVe = (kv.getSoVeToiDaPerKH() != null && kv.getSoVeToiDaPerKH() > 0) ? kv.getSoVeToiDaPerKH() : 4;
-        long veDaMua = donHangChiTietRepository.countPaidQuantityByCustomerAndZone(maKH, maSK, maKhuVuc);
-        if (soLuong + veDaMua > maxVe) {
-            throw new RuntimeException("Bạn đã chọn hoặc mua tổng cộng " + (soLuong + veDaMua)
-                    + " vé ở khu vực " + kv.getTenKhuVuc() + ". Giới hạn tối đa là " + maxVe + " vé!");
-        }
-
         if (queueService.shouldQueue(maSK)) {
             if (queueToken == null || !queueService.validateQueueToken(queueToken, maKH, maSK)) {
                 throw new RuntimeException("Bạn cần vào hàng đợi trước khi đặt vé.");
             }
         }
 
-        java.math.BigDecimal donGia = kv.getGiaVe() != null ? kv.getGiaVe() : java.math.BigDecimal.ZERO;
-        java.math.BigDecimal thanhTien = donGia.multiply(new java.math.BigDecimal(soLuong));
+        BigDecimal tongTien = BigDecimal.ZERO;
+        List<DonHangChiTiet> chiTietList = new ArrayList<>();
+        List<String> zoneIds = new ArrayList<>(quantitiesByZone.keySet());
+        zoneIds.sort(Comparator.naturalOrder());
+
+        for (String maKhuVuc : zoneIds) {
+            int soLuong = quantitiesByZone.get(maKhuVuc);
+            KhuVuc kv = khuVucRepository.findByIdWithLock(maKhuVuc)
+                    .orElseThrow(() -> new RuntimeException("Khu vực không tồn tại!"));
+            if (!maSK.equals(kv.getMaSK())) {
+                throw new RuntimeException("Khu vực " + kv.getTenKhuVuc() + " không thuộc sự kiện đang chọn!");
+            }
+            if (!"Đang bán".equalsIgnoreCase(kv.getTrangThai())) {
+                throw new RuntimeException("Khu vực " + kv.getTenKhuVuc() + " hiện không mở bán!");
+            }
+
+            int capacity = kv.getSoGheToiDa() != null ? kv.getSoGheToiDa() : 0;
+            int sold = kv.getSoGheDaBan() != null ? kv.getSoGheDaBan() : 0;
+            int remaining = capacity - sold;
+            if (soLuong > remaining) {
+                throw new RuntimeException("Khu vực " + kv.getTenKhuVuc() + " chỉ còn " + Math.max(0, remaining) + " vé.");
+            }
+
+            int maxVe = (kv.getSoVeToiDaPerKH() != null && kv.getSoVeToiDaPerKH() > 0) ? kv.getSoVeToiDaPerKH() : 4;
+            long veDaMua = donHangChiTietRepository.countPaidQuantityByCustomerAndZone(maKH, maSK, maKhuVuc);
+            if (soLuong + veDaMua > maxVe) {
+                throw new RuntimeException("Bạn đã chọn hoặc mua tổng cộng " + (soLuong + veDaMua)
+                        + " vé ở khu vực " + kv.getTenKhuVuc() + ". Giới hạn tối đa là " + maxVe + " vé!");
+            }
+
+            BigDecimal donGia = kv.getGiaVe() != null ? kv.getGiaVe() : BigDecimal.ZERO;
+            BigDecimal thanhTien = donGia.multiply(new BigDecimal(soLuong));
+            tongTien = tongTien.add(thanhTien);
+
+            DonHangChiTiet chiTiet = new DonHangChiTiet();
+            chiTiet.setMaSK(maSK);
+            chiTiet.setMaKhuVuc(maKhuVuc);
+            chiTiet.setSoLuong(soLuong);
+            chiTiet.setDonGia(donGia);
+            chiTiet.setThanhTien(thanhTien);
+            chiTietList.add(chiTiet);
+        }
+
         String maDonHang = idGeneratorService.nextDonHangId();
         Timestamp thoiGianHetHan = new Timestamp(now.getTime() + 10 * 60 * 1000);
 
         DonHang dh = new DonHang();
         dh.setMaDonHang(maDonHang);
         dh.setSoDonHang(maDonHang);
-        dh.setTongTien(thanhTien);
-        dh.setThanhTien(thanhTien);
+        dh.setTongTien(tongTien);
+        dh.setThanhTien(tongTien);
         dh.setTrangThaiDonHang("Chờ thanh toán");
         dh.setThoiGianDat(now);
         dh.setThoiGianHetHan(thoiGianHetHan);
@@ -250,16 +277,34 @@ public class BookingService {
         dh.setMaKH(maKH);
         donHangRepository.save(dh);
 
-        DonHangChiTiet chiTiet = new DonHangChiTiet();
-        chiTiet.setMaDonHang(maDonHang);
-        chiTiet.setMaSK(maSK);
-        chiTiet.setMaKhuVuc(maKhuVuc);
-        chiTiet.setSoLuong(soLuong);
-        chiTiet.setDonGia(donGia);
-        chiTiet.setThanhTien(thanhTien);
-        donHangChiTietRepository.save(chiTiet);
+        for (DonHangChiTiet chiTiet : chiTietList) {
+            chiTiet.setMaDonHang(maDonHang);
+        }
+        donHangChiTietRepository.saveAll(chiTietList);
 
         return maDonHang;
+    }
+
+    private Map<String, Integer> normalizeZoneRequests(List<ZoneTicketRequest> requests) {
+        Map<String, Integer> result = new LinkedHashMap<>();
+        if (requests == null) {
+            return result;
+        }
+        for (ZoneTicketRequest request : requests) {
+            if (request == null || request.getMaKhuVuc() == null || request.getMaKhuVuc().isBlank()) {
+                continue;
+            }
+            int soLuong = request.getSoLuong() != null ? request.getSoLuong() : 0;
+            if (soLuong < 0) {
+                throw new RuntimeException("Số lượng vé không được âm.");
+            }
+            if (soLuong == 0) {
+                continue;
+            }
+            String maKhuVuc = request.getMaKhuVuc().trim();
+            result.put(maKhuVuc, result.getOrDefault(maKhuVuc, 0) + soLuong);
+        }
+        return result;
     }
 
     @Autowired

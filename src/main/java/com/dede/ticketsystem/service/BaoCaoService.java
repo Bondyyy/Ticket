@@ -3,6 +3,7 @@ package com.dede.ticketsystem.service;
 import com.dede.ticketsystem.model.BaoCaoSuKienDTO;
 import com.dede.ticketsystem.model.BaoCaoTongQuanDTO;
 import com.dede.ticketsystem.model.HanhViKhachHangDTO;
+import com.dede.ticketsystem.util.OrderStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,8 +16,6 @@ import java.util.Map;
 @Service
 public class BaoCaoService {
 
-    private static final String TRANG_THAI_DA_THANH_TOAN = "Đã thanh toán";
-
     private final JdbcTemplate jdbcTemplate;
 
     public BaoCaoService(JdbcTemplate jdbcTemplate) {
@@ -28,15 +27,15 @@ public class BaoCaoService {
      */
     public BaoCaoTongQuanDTO getBaoCaoTongQuan(String maSK, Timestamp tuNgay, Timestamp denNgay, String trangThaiDonHang) {
         String selectedStatus = normalize(trangThaiDonHang);
-        boolean includePaidMetrics = selectedStatus == null || TRANG_THAI_DA_THANH_TOAN.equals(selectedStatus);
+        boolean includePaidMetrics = selectedStatus == null || OrderStatus.DA_THANH_TOAN.equals(selectedStatus);
 
         BaoCaoTongQuanDTO dto = new BaoCaoTongQuanDTO();
         dto.setTongDoanhThu(includePaidMetrics ? calculateTongDoanhThu(maSK, tuNgay, denNgay) : BigDecimal.ZERO);
         dto.setTongVeDaBan(includePaidMetrics ? countPaidTickets(maSK, tuNgay, denNgay) : 0L);
 
-        dto.setDonChoThanhToan(countDonHangByStatus("Chờ thanh toán", maSK, tuNgay, denNgay, selectedStatus));
-        dto.setDonDaThanhToan(countDonHangByStatus(TRANG_THAI_DA_THANH_TOAN, maSK, tuNgay, denNgay, selectedStatus));
-        dto.setDonDaHuy(countDonHangByStatus("Đã hủy", maSK, tuNgay, denNgay, selectedStatus));
+        dto.setDonChoThanhToan(countDonHangByStatus(OrderStatus.CHO_THANH_TOAN, maSK, tuNgay, denNgay, selectedStatus));
+        dto.setDonDaThanhToan(countDonHangByStatus(OrderStatus.DA_THANH_TOAN, maSK, tuNgay, denNgay, selectedStatus));
+        dto.setDonDaHuy(countDonHangByStatus(OrderStatus.DA_HUY, maSK, tuNgay, denNgay, selectedStatus));
 
         long totalTransactions = countTransactions(maSK, tuNgay, denNgay, selectedStatus, null);
         long successTransactions = countTransactions(maSK, tuNgay, denNgay, selectedStatus, "Thành công");
@@ -64,14 +63,14 @@ public class BaoCaoService {
             sql.append("SELECT COALESCE(SUM(dh.ThanhTien), 0) ")
                     .append("FROM DONHANG dh ")
                     .append("WHERE dh.TrangThaiDonHang = ? ");
-            params.add(TRANG_THAI_DA_THANH_TOAN);
+            params.add(OrderStatus.DA_THANH_TOAN);
             appendOrderDateFilter(sql, params, "dh", tuNgay, denNgay);
         } else {
             sql.append("SELECT COALESCE(SUM(v.GiaVe), 0) ")
                     .append("FROM VE v ")
                     .append("JOIN DONHANG dh ON v.MaDonHang = dh.MaDonHang ")
                     .append("WHERE dh.TrangThaiDonHang = ? AND v.MaSK = ? ");
-            params.add(TRANG_THAI_DA_THANH_TOAN);
+            params.add(OrderStatus.DA_THANH_TOAN);
             params.add(selectedEvent);
             appendOrderDateFilter(sql, params, "dh", tuNgay, denNgay);
         }
@@ -89,7 +88,7 @@ public class BaoCaoService {
                 .append("JOIN DONHANG dh ON v.MaDonHang = dh.MaDonHang ")
                 .append("WHERE dh.TrangThaiDonHang = ? ");
         List<Object> params = new ArrayList<>();
-        params.add(TRANG_THAI_DA_THANH_TOAN);
+        params.add(OrderStatus.DA_THANH_TOAN);
 
         if (normalize(maSK) != null) {
             sql.append("AND v.MaSK = ? ");
@@ -164,7 +163,7 @@ public class BaoCaoService {
                 .append("JOIN SUKIEN sk ON v.MaSK = sk.MaSK ")
                 .append("WHERE dh.TrangThaiDonHang = ? ");
         List<Object> params = new ArrayList<>();
-        params.add(TRANG_THAI_DA_THANH_TOAN);
+        params.add(OrderStatus.DA_THANH_TOAN);
 
         if (normalize(maSK) != null) {
             sql.append("AND v.MaSK = ? ");
@@ -177,10 +176,10 @@ public class BaoCaoService {
                 .append("LIMIT 1");
 
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql.toString(), params.toArray());
-        if (result.isEmpty() || result.get(0).get("TENSK") == null) {
+        if (result.isEmpty() || getValue(result.get(0), "TENSK", "TenSK") == null) {
             return "Chưa có";
         }
-        return String.valueOf(result.get(0).get("TENSK"));
+        return String.valueOf(getValue(result.get(0), "TENSK", "TenSK"));
     }
 
     /**
@@ -188,7 +187,7 @@ public class BaoCaoService {
      */
     public List<BaoCaoSuKienDTO> getBaoCaoSuKien(String maSK, Timestamp tuNgay, Timestamp denNgay, String trangThaiDonHang) {
         String selectedStatus = normalize(trangThaiDonHang);
-        boolean includePaidMetrics = selectedStatus == null || TRANG_THAI_DA_THANH_TOAN.equals(selectedStatus);
+        boolean includePaidMetrics = selectedStatus == null || OrderStatus.DA_THANH_TOAN.equals(selectedStatus);
 
         StringBuilder sqlSK = new StringBuilder("SELECT MaSK, TenSK, TongSoVe FROM SUKIEN WHERE 1=1 ");
         List<Object> paramsSK = new ArrayList<>();
@@ -202,12 +201,12 @@ public class BaoCaoService {
         List<BaoCaoSuKienDTO> reportList = new ArrayList<>();
 
         for (Map<String, Object> row : events) {
-            String eventId = valueAsString(row.get("MASK"));
-            long tongSoVe = valueAsLong(row.get("TONGSOVE"));
+            String eventId = valueAsString(getValue(row, "MASK", "MaSK"));
+            long tongSoVe = valueAsLong(getValue(row, "TONGSOVE", "TongSoVe"));
 
             BaoCaoSuKienDTO dto = new BaoCaoSuKienDTO();
             dto.setMaSK(eventId);
-            dto.setTenSK(valueAsString(row.get("TENSK")));
+            dto.setTenSK(valueAsString(getValue(row, "TENSK", "TenSK")));
             dto.setTongSoVe(tongSoVe);
 
             long veDaBan = includePaidMetrics ? countPaidTickets(eventId, tuNgay, denNgay) : 0L;
@@ -239,7 +238,7 @@ public class BaoCaoService {
                 .append("JOIN DONHANG dh ON v.MaDonHang = dh.MaDonHang ")
                 .append("WHERE dh.TrangThaiDonHang = ? AND v.MaSK = ? ");
         List<Object> params = new ArrayList<>();
-        params.add(TRANG_THAI_DA_THANH_TOAN);
+        params.add(OrderStatus.DA_THANH_TOAN);
         params.add(maSK);
         appendOrderDateFilter(sql, params, "dh", tuNgay, denNgay);
 
@@ -254,7 +253,7 @@ public class BaoCaoService {
                 .append("WHERE v.MaSK = ? AND dh.TrangThaiDonHang = ? ");
         List<Object> params = new ArrayList<>();
         params.add(maSK);
-        params.add(TRANG_THAI_DA_THANH_TOAN);
+        params.add(OrderStatus.DA_THANH_TOAN);
         appendOrderDateFilter(sql, params, "dh", tuNgay, denNgay);
         return queryLong(sql.toString(), params);
     }
@@ -311,14 +310,19 @@ public class BaoCaoService {
 
         for (Map<String, Object> row : queryResult) {
             HanhViKhachHangDTO logDto = new HanhViKhachHangDTO();
-            logDto.setMaLog(valueAsString(row.get("MALOG")));
-            logDto.setLoaiHanhDong(valueAsString(row.get("LOAIHANHDONG")));
-            logDto.setMaSK(row.get("MASK") != null ? valueAsString(row.get("MASK")) : "");
-            logDto.setTenSK(row.get("TENSK") != null ? valueAsString(row.get("TENSK")) : "Hệ thống");
-            logDto.setThoiGian((Timestamp) row.get("THOIGIAN"));
-            logDto.setMaKH(row.get("MAKH") != null ? valueAsString(row.get("MAKH")) : null);
-            logDto.setTenKH(row.get("TENTAIKHOAN") != null ? valueAsString(row.get("TENTAIKHOAN")) : "Khách vãng lai");
-            logDto.setThietBi(row.get("THIETBI") != null ? valueAsString(row.get("THIETBI")) : "Web");
+            logDto.setMaLog(valueAsString(getValue(row, "MALOG", "MaLog")));
+            logDto.setLoaiHanhDong(valueAsString(getValue(row, "LOAIHANHDONG", "LoaiHanhDong")));
+            Object maSkValue = getValue(row, "MASK", "MaSK");
+            Object tenSkValue = getValue(row, "TENSK", "TenSK");
+            Object maKhValue = getValue(row, "MAKH", "MaKH");
+            Object tenTaiKhoanValue = getValue(row, "TENTAIKHOAN", "TenTaiKhoan");
+            Object thietBiValue = getValue(row, "THIETBI", "ThietBi");
+            logDto.setMaSK(maSkValue != null ? valueAsString(maSkValue) : "");
+            logDto.setTenSK(tenSkValue != null ? valueAsString(tenSkValue) : "Hệ thống");
+            logDto.setThoiGian((Timestamp) getValue(row, "THOIGIAN", "ThoiGian"));
+            logDto.setMaKH(maKhValue != null ? valueAsString(maKhValue) : null);
+            logDto.setTenKH(tenTaiKhoanValue != null ? valueAsString(tenTaiKhoanValue) : "Khách vãng lai");
+            logDto.setThietBi(thietBiValue != null ? valueAsString(thietBiValue) : "Web");
             logs.add(logDto);
         }
 
@@ -361,6 +365,22 @@ public class BaoCaoService {
 
     private String valueAsString(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private Object getValue(Map<String, Object> row, String... keys) {
+        for (String key : keys) {
+            if (row.containsKey(key)) {
+                return row.get(key);
+            }
+        }
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
+            for (String key : keys) {
+                if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(key)) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
     }
 
     private long valueAsLong(Object value) {

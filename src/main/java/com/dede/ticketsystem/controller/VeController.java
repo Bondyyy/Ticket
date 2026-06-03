@@ -5,6 +5,7 @@ import com.dede.ticketsystem.model.VeDTO;
 import com.dede.ticketsystem.model.VeQuanLyDTO;
 import com.dede.ticketsystem.service.SessionService;
 import com.dede.ticketsystem.service.VeService;
+import com.dede.ticketsystem.util.DateTimeUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -86,8 +87,8 @@ public class VeController {
                     data.put("maQR", v.getMaQR());
                     data.put("giaVe", v.getGiaVe());
                     data.put("trangThaiVe", v.getTrangThaiVe());
-                    data.put("thoiGianPhat", v.getThoiGianPhat() != null ? v.getThoiGianPhat().toString() : null);
-                    data.put("thoiGianSuDung", v.getThoiGianSuDung() != null ? v.getThoiGianSuDung().toString() : null);
+                    data.put("thoiGianPhat", DateTimeUtils.formatDisplayMinute(v.getThoiGianPhat()));
+                    data.put("thoiGianSuDung", DateTimeUtils.formatDisplayMinute(v.getThoiGianSuDung()));
                     data.put("maDonHang", v.getMaDonHang());
                     data.put("maGhe", v.getMaGhe());
                     data.put("maSK", v.getMaSK());
