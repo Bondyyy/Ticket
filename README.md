@@ -32,10 +32,8 @@
 ---
 
 ## GIẢNG VIÊN HƯỚNG DẪN
-
 <a name="giangvien"></a>
-
-* **Giảng viên hướng dẫn**: Cập nhật sau
+* ThS. **Tạ Việt Phương** - *phuongtv@uit.edu.vn*
 
 ---
 
